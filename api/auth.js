@@ -1,8 +1,14 @@
 const jwt = require('jsonwebtoken');
 const bcrypt = require('bcryptjs');
+const crypto = require('crypto');
 const db = require('./db');
 
-const JWT_SECRET = process.env.JWT_SECRET || 'todolist-secret-change-in-production';
+// In production (DATABASE_URL set), derive stable secret from DB URL if JWT_SECRET not set
+const JWT_SECRET = process.env.JWT_SECRET || (
+  process.env.DATABASE_URL
+    ? crypto.createHash('sha256').update(process.env.DATABASE_URL).digest('hex')
+    : 'todolist-secret-change-in-production'
+);
 const SALT_ROUNDS = 10;
 
 function genId() {

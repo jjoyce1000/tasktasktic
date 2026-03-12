@@ -1615,6 +1615,8 @@
       if (!USE_API) return '';
       if (LOCAL_ORIGINS.includes(window.location.origin)) return '';
       if (/^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(window.location.origin)) return 'http://localhost:3001';
+      // Same-origin: use relative URLs (page and API served from same host)
+      if (window.location.origin === API_URL.replace(/\/$/, '') || window.location.hostname === new URL(API_URL).hostname) return '';
       return API_URL;
     })();
 
