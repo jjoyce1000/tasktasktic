@@ -18,9 +18,8 @@ WORKDIR /app
 COPY package.json package-lock.json* ./
 RUN npm ci --omit=dev 2>/dev/null || npm install --omit=dev
 
-# Install Python PDF dependencies
-COPY requirements-pdf.txt ./
-RUN pip3 install --upgrade pip && pip3 install --no-cache-dir -r requirements-pdf.txt
+# Install Python PDF dependencies (pdfplumber only; anthropic is optional, install separately if needed)
+RUN python3 -m pip install --upgrade pip && python3 -m pip install --no-cache-dir "pdfplumber>=0.10.0"
 
 # Copy app
 COPY . .
