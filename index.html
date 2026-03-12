@@ -1,0 +1,3578 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <title>TaskTastic</title>
+  <style>
+    * { box-sizing: border-box; }
+    html { -webkit-text-size-adjust: 100%; }
+
+    body {
+      font-family: system-ui, -apple-system, sans-serif;
+      margin: 0;
+      padding: 1.5rem 1.25rem;
+      padding-left: max(1.25rem, env(safe-area-inset-left));
+      padding-right: max(1.25rem, env(safe-area-inset-right));
+      padding-bottom: max(1.5rem, env(safe-area-inset-bottom));
+      background: #f0f2f5;
+      color: #222;
+      min-height: 100vh;
+    }
+
+    /* ── Page header ── */
+    .page-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 1rem;
+      margin: -1.5rem -1.25rem 1.5rem -1.25rem;
+      margin-left: max(-1.25rem, calc(-1 * env(safe-area-inset-left)));
+      margin-right: max(-1.25rem, calc(-1 * env(safe-area-inset-right)));
+      padding: 1rem 1.25rem;
+      padding-left: max(1.25rem, env(safe-area-inset-left));
+      padding-right: max(1.25rem, env(safe-area-inset-right));
+      flex-wrap: wrap;
+      background: linear-gradient(135deg, #4a90d9 0%, #5b9bd5 25%, #7eb8e8 50%, #a8d4f0 100%);
+      box-shadow: 0 2px 8px rgba(74, 144, 217, 0.25);
+    }
+
+    .header-left {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      flex-shrink: 0;
+    }
+
+    .header-title-wrap {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .auth-inline {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      flex-wrap: wrap;
+    }
+    .auth-inline input {
+      padding: 0.4rem 0.6rem;
+      font-size: 0.85rem;
+      border: 1.5px solid rgba(255,255,255,0.6);
+      border-radius: 7px;
+      min-width: 140px;
+      background: rgba(255,255,255,0.95);
+    }
+    .page-header .auth-inline input {
+      border-color: rgba(255,255,255,0.8);
+    }
+    .auth-inline input[type="email"] { min-width: 160px; }
+    .auth-inline input[type="password"] { min-width: 120px; }
+    .auth-error-inline { color: #e74c3c; font-size: 0.8rem; margin-left: 0.25rem; }
+
+    .header-center { flex: 1; min-width: 0; }
+    .header-right { display: flex; gap: 0.5rem; flex-shrink: 0; align-items: center; }
+    .import-group { display: flex; flex-direction: column; gap: 0.25rem; align-items: stretch; }
+    .import-buttons-row { display: flex; gap: 0.5rem; }
+    .import-progress {
+      display: none;
+      align-items: center;
+      gap: 0.5rem;
+      font-size: 0.75rem;
+      color: rgba(255,255,255,0.95);
+      height: 20px;
+    }
+    .import-progress.importing { display: flex; }
+    .import-progress-bar {
+      width: 80px;
+      height: 4px;
+      background: rgba(255,255,255,0.4);
+      border-radius: 2px;
+      overflow: hidden;
+    }
+    .import-progress-bar::after {
+      content: '';
+      display: block;
+      height: 100%;
+      width: 30%;
+      background: white;
+      border-radius: 2px;
+      animation: import-progress-pulse 1.2s ease-in-out infinite;
+    }
+    @keyframes import-progress-pulse {
+      0%, 100% { transform: translateX(-100%); }
+      50% { transform: translateX(230%); }
+    }
+
+    .page-header h1 {
+      color: white;
+      font-size: 1.9rem;
+      margin: 0;
+      text-shadow: 0 1px 2px rgba(0, 0, 0, 0.15);
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+    .tasktastic-logo {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .tasktastic-logo svg {
+      filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.2));
+    }
+
+    .user-logout-wrap {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      flex-wrap: wrap;
+    }
+    .user-email-display { font-size: 0.8rem; color: rgba(255,255,255,0.95); }
+    .page-header .import-csv-btn,
+    .page-header .import-pdf-btn,
+    .page-header .reset-btn,
+    .page-header .settings-gear-btn,
+    .page-header .login-btn,
+    .page-header .logout-btn,
+    .page-header .admin-link {
+      background: rgba(255,255,255,0.95);
+      border-color: rgba(255,255,255,0.9);
+    }
+    .page-header .import-csv-btn { color: #27ae60; }
+    .page-header .import-csv-btn:hover { background: #27ae60; color: white; }
+    .page-header .import-pdf-btn { color: #8e44ad; }
+    .page-header .import-pdf-btn:hover { background: #8e44ad; color: white; }
+    .page-header .reset-btn { color: #e74c3c; }
+    .page-header .reset-btn:hover { background: #e74c3c; color: white; }
+    .page-header .settings-gear-btn { color: #4a90d9; }
+    .page-header .settings-gear-btn:hover { background: rgba(255,255,255,0.95); color: #4a90d9; border-color: white; }
+
+    .toggle-overview-btn {
+      padding: 0.45rem 0.9rem;
+      border: 1.5px solid #4a90d9;
+      border-radius: 7px;
+      background: white;
+      color: #4a90d9;
+      font-size: 0.85rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.15s, color 0.15s;
+      white-space: nowrap;
+    }
+
+    .toggle-overview-btn:hover {
+      background: #4a90d9;
+      color: white;
+    }
+
+    .reset-btn {
+      padding: 0.45rem 0.9rem;
+      border: 1.5px solid #e74c3c;
+      border-radius: 7px;
+      background: white;
+      color: #e74c3c;
+      font-size: 0.85rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.15s, color 0.15s;
+      white-space: nowrap;
+    }
+
+    .reset-btn:hover {
+      background: #e74c3c;
+      color: white;
+    }
+
+    .import-csv-btn {
+      padding: 0.45rem 0.9rem;
+      border: 1.5px solid #27ae60;
+      border-radius: 7px;
+      background: white;
+      color: #27ae60;
+      font-size: 0.85rem;
+      font-weight: 600;
+      cursor: pointer;
+      white-space: nowrap;
+      transition: background 0.15s, color 0.15s;
+    }
+    .import-csv-btn:hover {
+      background: #27ae60;
+      color: white;
+    }
+
+    .import-pdf-btn {
+      padding: 0.45rem 0.9rem;
+      border: 1.5px solid #8e44ad;
+      border-radius: 7px;
+      background: white;
+      color: #8e44ad;
+      font-size: 0.85rem;
+      font-weight: 600;
+      cursor: pointer;
+      white-space: nowrap;
+      transition: background 0.15s, color 0.15s;
+    }
+    .import-pdf-btn:hover {
+      background: #8e44ad;
+      color: white;
+    }
+
+    .admin-link {
+      padding: 0.45rem 0.9rem;
+      border: 1.5px solid #7f8c8d;
+      border-radius: 7px;
+      background: white;
+      color: #7f8c8d;
+      font-size: 0.85rem;
+      font-weight: 600;
+      text-decoration: none;
+      white-space: nowrap;
+      transition: background 0.15s, color 0.15s;
+    }
+    .admin-link:hover {
+      background: #7f8c8d;
+      color: white;
+    }
+
+    .login-btn, .logout-btn {
+      padding: 0.45rem 0.9rem;
+      border: 1.5px solid #666;
+      border-radius: 7px;
+      background: white;
+      color: #333;
+      font-size: 0.85rem;
+      cursor: pointer;
+    }
+    .login-btn:hover, .logout-btn:hover { background: #eee; }
+    .admin-panel-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.5);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 9998;
+    }
+    .admin-panel-overlay.hidden { display: none; }
+    .admin-panel {
+      background: white;
+      padding: 1.5rem 2rem;
+      border-radius: 10px;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.2);
+      min-width: min(400px, calc(100vw - 2rem));
+      max-width: calc(100vw - 2rem);
+    }
+    .admin-panel h3 { margin: 0 0 1rem; }
+    .admin-panel .stats-result { margin-top: 1rem; }
+    .admin-panel .stats-table { width: 100%; border-collapse: collapse; font-size: 0.9rem; }
+    .admin-panel .stats-table th, .admin-panel .stats-table td { padding: 0.5rem; text-align: left; border-bottom: 1px solid #eee; }
+    .admin-panel .stats-result .error { color: #e74c3c; font-size: 0.9rem; }
+    .admin-panel .close-btn { margin-top: 1rem; }
+
+    .config-panel-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.5);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 9997;
+    }
+    .config-panel-overlay.hidden { display: none; }
+    .config-panel {
+      background: white;
+      padding: 1.25rem 1.5rem;
+      border-radius: 10px;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.2);
+      max-width: min(420px, calc(100vw - 2rem));
+      max-height: calc(100vh - 2rem);
+      display: flex;
+      flex-direction: column;
+    }
+    .config-panel-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 1rem;
+      flex-shrink: 0;
+    }
+    .config-panel-header h3 { margin: 0; font-size: 1.2rem; }
+    .config-panel-body {
+      overflow-y: auto;
+      flex: 1;
+      min-height: 0;
+    }
+    .config-panel .card { margin-bottom: 1rem; }
+    .config-panel .card:last-child { margin-bottom: 0; }
+    .settings-gear-btn {
+      width: 40px;
+      height: 40px;
+      padding: 0;
+      border: 1.5px solid #6c5ce7;
+      border-radius: 50%;
+      background: white;
+      color: #6c5ce7;
+      font-size: 1.25rem;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: background 0.15s, color 0.15s;
+    }
+    .settings-gear-btn:hover {
+      background: #6c5ce7;
+      color: white;
+    }
+
+    /* ── Layout ── */
+    .app-wrapper {
+      display: grid;
+      grid-template-columns: 1fr;
+      width: 100%;
+      align-items: start;
+      position: relative;
+    }
+
+    .right-pane {
+      position: sticky;
+      top: 1.5rem;
+    }
+
+    .right-pane.hidden { display: none; }
+
+    /* Tablet and below */
+    @media (max-width: 820px) {
+      .app-wrapper { grid-template-columns: 1fr; }
+      .right-pane { position: static; }
+      .page-header { flex-wrap: wrap; justify-content: space-between; gap: 0.75rem; }
+      .page-header h1 { font-size: 1.5rem; }
+    }
+
+    /* Mobile phones */
+    @media (max-width: 600px) {
+      body { padding: 1rem; padding-left: max(1rem, env(safe-area-inset-left)); padding-right: max(1rem, env(safe-area-inset-right)); }
+      .page-header {
+        margin: -1rem -1rem 1rem -1rem;
+        margin-left: max(-1rem, calc(-1 * env(safe-area-inset-left)));
+        margin-right: max(-1rem, calc(-1 * env(safe-area-inset-right)));
+        padding: 1rem;
+        padding-left: max(1rem, env(safe-area-inset-left));
+        padding-right: max(1rem, env(safe-area-inset-right));
+        flex-direction: column;
+        align-items: stretch;
+        gap: 0.75rem;
+      }
+      .header-left, .header-right { display: flex; flex-wrap: wrap; justify-content: center; }
+      .page-header h1 { font-size: 1.4rem; text-align: left; }
+      .header-left button,
+      .header-right button,
+      .settings-gear-btn,
+      .header-left .login-btn,
+      .header-left .logout-btn,
+      .header-left .admin-link,
+      .toggle-overview-btn,
+      .import-csv-btn,
+      .import-pdf-btn,
+      .reset-btn {
+        min-height: 44px;
+        min-width: 44px;
+        padding: 0.6rem 1rem;
+      }
+      .auth-inline { flex-wrap: wrap; }
+      .auth-inline input { min-width: 120px; }
+      .user-logout-wrap { align-items: center; }
+      .form-row { grid-template-columns: 1fr; }
+      .stats-bar { grid-template-columns: repeat(2, 1fr); gap: 0.5rem; }
+      .stat-num { font-size: 1.2rem; }
+      .overview-sort-row { flex-wrap: nowrap; overflow-x: auto; }
+      .admin-panel { padding: 1.25rem 1rem; }
+      input[type="text"],
+      input[type="date"],
+      input[type="email"],
+      input[type="password"],
+      select,
+      textarea { font-size: 16px; }
+      .ov-task-text { max-width: 140px; }
+      tbody td { padding: 0.65rem 0.5rem; }
+    }
+
+    /* Touch devices: larger tap targets */
+    @media (pointer: coarse) {
+      input[type="checkbox"] { width: 22px; height: 22px; min-width: 22px; min-height: 22px; }
+      button, .admin-link, .login-btn, .logout-btn { min-height: 44px; }
+    }
+
+    /* ── Cards ── */
+    .card {
+      background: white;
+      border-radius: 10px;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.09);
+      padding: 1.1rem 1.25rem;
+      margin-bottom: 1rem;
+    }
+
+    .card-title {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      font-weight: 600;
+      font-size: 1rem;
+      color: #333;
+      margin-bottom: 0.9rem;
+      cursor: pointer;
+      user-select: none;
+    }
+
+    .card-title .toggle-icon {
+      font-size: 0.8rem;
+      transition: transform 0.2s;
+    }
+
+    .card-title.collapsed .toggle-icon { transform: rotate(-90deg); }
+
+    .collapsible-body {
+      overflow: hidden;
+      transition: max-height 0.25s ease;
+    }
+
+    /* ── Form fields ── */
+    label {
+      display: block;
+      font-size: 0.8rem;
+      font-weight: 600;
+      color: #555;
+      margin-bottom: 0.25rem;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+
+    input[type="text"],
+    input[type="date"],
+    select,
+    textarea {
+      width: 100%;
+      padding: 0.55rem 0.75rem;
+      border: 1px solid #d0d4dc;
+      border-radius: 7px;
+      font-size: 0.95rem;
+      font-family: inherit;
+      background: #fafafa;
+      color: #222;
+      transition: border-color 0.15s, box-shadow 0.15s;
+    }
+
+    input[type="text"]:focus,
+    input[type="date"]:focus,
+    select:focus,
+    textarea:focus {
+      outline: none;
+      border-color: #4a90d9;
+      box-shadow: 0 0 0 3px rgba(74,144,217,0.15);
+      background: white;
+    }
+
+    textarea { resize: vertical; min-height: 60px; }
+    .field { margin-bottom: 0.75rem; }
+
+    .form-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 0.75rem;
+    }
+
+    /* ── Buttons ── */
+    button {
+      padding: 0.55rem 1rem;
+      border: none;
+      border-radius: 7px;
+      font-size: 0.92rem;
+      cursor: pointer;
+      font-weight: 600;
+      transition: background 0.15s, transform 0.1s;
+    }
+
+    button:active { transform: scale(0.97); }
+
+    .btn-primary { background: #4a90d9; color: white; }
+    .btn-primary:hover { background: #3a7bc8; }
+
+    .btn-danger { background: #e74c3c; color: white; }
+    .btn-danger:hover { background: #c0392b; }
+
+    .btn-sm { padding: 0.3rem 0.6rem; font-size: 0.8rem; }
+    .btn-full { width: 100%; margin-top: 0.25rem; }
+
+    /* ── Pooh Bear celebration overlay ── */
+    #poohOverlay {
+      position: fixed;
+      inset: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      z-index: 9999;
+      pointer-events: none;
+      overflow: hidden;
+      background: radial-gradient(ellipse 75% 65% at 50% 55%,
+        rgba(255, 80, 160, 0.28) 0%,
+        rgba(120, 60, 220, 0.18) 45%,
+        rgba(10, 5, 30, 0.58) 100%);
+      opacity: 0;
+      transition: opacity 0.4s ease;
+    }
+
+    #poohOverlay.pooh-visible { opacity: 1; }
+
+    #poohOverlay.pooh-hiding {
+      animation: poohOverlayFadeOut 0.6s ease forwards;
+    }
+
+    /* Floating honey pots behind Pooh */
+    .pooh-floatie {
+      position: absolute;
+      font-size: 2.2rem;
+      pointer-events: none;
+      opacity: 0;
+      animation: floatUp 3.2s ease-in forwards;
+    }
+
+    @keyframes floatUp {
+      0%   { transform: translateY(0)    rotate(0deg)   scale(0.8); opacity: 0.9; }
+      80%  { opacity: 0.6; }
+      100% { transform: translateY(-105vh) rotate(420deg) scale(1.1); opacity: 0; }
+    }
+
+    /* Main content card */
+    #poohContainer {
+      position: relative;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 1rem;
+      background: linear-gradient(160deg, rgba(255,220,80,0.18) 0%, rgba(180,90,0,0.12) 100%);
+      border: 2px solid rgba(255, 210, 70, 0.35);
+      border-radius: 28px;
+      padding: 1.6rem 2.4rem 1.8rem;
+      backdrop-filter: blur(6px);
+      box-shadow:
+        0 0 0 1px rgba(255,100,220,0.18),
+        0 8px 40px rgba(0,0,0,0.55),
+        0 0 80px rgba(200, 80, 255, 0.28);
+    }
+
+    #poohOverlay.pooh-visible #poohContainer {
+      animation: poohBounceIn 0.78s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+    }
+
+    #poohGif {
+      width: 340px;
+      height: auto;
+      border-radius: 18px;
+      display: block;
+      box-shadow:
+        0 0 30px rgba(220, 100, 255, 0.55),
+        0 16px 48px rgba(0, 0, 0, 0.55);
+      animation: poohBob 0.9s ease-in-out infinite alternate;
+    }
+
+    .pooh-honey-bar {
+      width: 100%;
+      height: 6px;
+      border-radius: 3px;
+      background: linear-gradient(90deg, #ec4899, #a855f7, #3b82f6, #a855f7, #ec4899);
+      box-shadow: 0 0 12px rgba(168, 85, 247, 0.7);
+      animation: honeyShimmer 1.4s linear infinite;
+      background-size: 200% 100%;
+    }
+
+    @keyframes honeyShimmer {
+      0%   { background-position: 200% 0; }
+      100% { background-position: -200% 0; }
+    }
+
+    .pooh-text {
+      font-size: 1.85rem;
+      font-weight: 900;
+      color: #fff8e1;
+      text-shadow:
+        0 2px 0 #7e22ce,
+        0 4px 16px rgba(0,0,0,0.6),
+        0 0 40px rgba(220, 80, 255, 0.85);
+      letter-spacing: 0.03em;
+      text-align: center;
+      animation: textPop 0.5s 0.28s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+    }
+
+    .pooh-sub {
+      font-size: 1rem;
+      color: rgba(255, 240, 180, 0.92);
+      font-weight: 600;
+      text-shadow: 0 1px 8px rgba(0,0,0,0.6);
+      animation: textPop 0.5s 0.44s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+      letter-spacing: 0.05em;
+      text-align: center;
+    }
+
+    .pooh-dismiss-hint {
+      font-size: 0.72rem;
+      color: rgba(255,255,255,0.45);
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      animation: textPop 0.4s 0.7s ease both;
+    }
+
+    @keyframes poohBounceIn {
+      0%   { transform: scale(0.1)  rotate(-20deg) translateY(100px); opacity: 0; }
+      42%  { transform: scale(1.20) rotate(7deg)   translateY(-25px); opacity: 1; }
+      63%  { transform: scale(0.90) rotate(-5deg)  translateY(12px); }
+      80%  { transform: scale(1.07) rotate(2deg)   translateY(-7px); }
+      100% { transform: scale(1)    rotate(0deg)   translateY(0);    opacity: 1; }
+    }
+
+    @keyframes poohBob {
+      0%   { transform: translateY(0px)  scale(1); }
+      100% { transform: translateY(-8px) scale(1.02); }
+    }
+
+    @keyframes poohOverlayFadeOut {
+      0%   { opacity: 1; }
+      100% { opacity: 0; }
+    }
+
+    @keyframes textPop {
+      0%   { transform: scale(0) translateY(12px); opacity: 0; }
+      68%  { transform: scale(1.14) translateY(-2px); opacity: 1; }
+      100% { transform: scale(1) translateY(0); opacity: 1; }
+    }
+
+    /* ── Categories & Tags lists ── */
+    #categoriesList, #tagsList {
+      max-height: 200px;
+      overflow-y: auto;
+      padding-right: 2px;
+    }
+
+    #categoriesList::-webkit-scrollbar, #tagsList::-webkit-scrollbar { width: 5px; }
+    #categoriesList::-webkit-scrollbar-track, #tagsList::-webkit-scrollbar-track { background: transparent; }
+    #categoriesList::-webkit-scrollbar-thumb, #tagsList::-webkit-scrollbar-thumb { background: #d0d4dc; border-radius: 99px; }
+
+    .category-item, .tag-item {
+      display: flex;
+      align-items: flex-start;
+      gap: 0.6rem;
+      padding: 0.6rem 0.75rem;
+      border-radius: 7px;
+      margin-bottom: 0.4rem;
+      background: #f7f8fa;
+      border-left: 4px solid #ccc;
+    }
+
+    .category-info, .tag-info { flex: 1; }
+    .category-name, .tag-name { font-weight: 600; font-size: 0.95rem; }
+    .category-desc { font-size: 0.82rem; color: #666; margin-top: 0.15rem; }
+    .category-color-dot, .tag-color-dot {
+      display: inline-block;
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      vertical-align: middle;
+    }
+    .color-dot-label {
+      cursor: pointer;
+      display: inline-block;
+      margin-right: 0.35rem;
+    }
+    .color-picker-hidden {
+      position: absolute;
+      width: 0;
+      height: 0;
+      opacity: 0;
+      pointer-events: none;
+    }
+
+    /* ── Task list ── */
+    ul { list-style: none; padding: 0; margin: 0; }
+
+    li {
+      display: flex;
+      align-items: flex-start;
+      gap: 0.6rem;
+      padding: 0.75rem 0.85rem;
+      background: white;
+      border-radius: 8px;
+      margin-bottom: 0.5rem;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.07);
+      transition: opacity 0.2s;
+    }
+
+    li.done { opacity: 0.55; }
+    li.done .task-text { text-decoration: line-through; color: #888; }
+
+    input[type="checkbox"] {
+      width: 17px;
+      height: 17px;
+      margin-top: 2px;
+      accent-color: #4a90d9;
+      cursor: pointer;
+      flex-shrink: 0;
+    }
+
+    .task-body { flex: 1; min-width: 0; }
+    .task-text { font-size: 0.97rem; word-break: break-word; margin-bottom: 0.3rem; }
+
+    .task-meta {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.4rem;
+      align-items: center;
+    }
+
+    .ov-edit-category, .ov-edit-tag, .ov-edit-task-text { cursor: pointer; }
+    .ov-inline-select {
+      padding: 0.2rem 0.4rem;
+      font-size: 0.8rem;
+      border-radius: 6px;
+      border: 1px solid #4a90d9;
+      min-width: 100px;
+      background: #fff;
+    }
+    .ov-inline-text-input {
+      flex: 1;
+      min-width: 0;
+      padding: 0.2rem 0.4rem;
+      font-size: inherit;
+      border-radius: 6px;
+      border: 1px solid #4a90d9;
+      background: #fff;
+    }
+    .ov-inline-text-input:focus {
+      outline: none;
+      border-color: #4a90d9;
+      box-shadow: 0 0 0 2px rgba(74,144,217,0.25);
+    }
+
+    /* ── Badges & chips ── */
+    .badge {
+      display: inline-block;
+      padding: 0.18rem 0.55rem;
+      border-radius: 999px;
+      font-size: 0.73rem;
+      font-weight: 700;
+      color: white;
+      white-space: nowrap;
+    }
+
+    .due-chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.25rem;
+      font-size: 0.75rem;
+      font-weight: 600;
+      padding: 0.18rem 0.5rem;
+      border-radius: 999px;
+      background: #e8f0fb;
+      color: #3a7bc8;
+      white-space: nowrap;
+    }
+
+    .due-chip.overdue { background: #fdecea; color: #c0392b; }
+    .due-chip.today   { background: #fff4e5; color: #d97706; }
+
+    /* ── Filters ── */
+    .filters {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.5rem;
+      margin-bottom: 1rem;
+      align-items: flex-end;
+    }
+
+    .filter-group { display: flex; flex-direction: column; flex: 1; min-width: 120px; }
+
+    .filters select,
+    .filters input[type="text"] {
+      padding: 0.45rem 0.7rem;
+      font-size: 0.88rem;
+    }
+
+    .filters label { font-size: 0.75rem; margin-bottom: 0.2rem; }
+
+    /* ── Empty state ── */
+    .empty-msg {
+      text-align: center;
+      color: #aaa;
+      padding: 2rem;
+      font-size: 0.95rem;
+      margin: 0;
+    }
+
+    /* ── Section divider ── */
+    .import-hint {
+      font-size: 0.72rem;
+      color: #888;
+      margin: 0.35rem 0 0;
+    }
+    .color-picker-row {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+    .color-picker-row input[type="color"] {
+      width: 2.5rem;
+      height: 2rem;
+      padding: 2px;
+      border: 1px solid #d0d4dc;
+      border-radius: 6px;
+      cursor: pointer;
+      background: #fafafa;
+    }
+    .color-preview { font-size: 0.8rem; color: #666; }
+    .section-label {
+      font-size: 0.78rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: #888;
+      margin: 1.1rem 0 0.5rem;
+    }
+
+    /* ── Overview pane ── */
+    .overview-card {
+      padding: 1.1rem 1.25rem 0.5rem;
+    }
+
+    .overview-card .card-title {
+      cursor: default;
+      margin-bottom: 0.75rem;
+    }
+
+    /* Stats bar */
+    .stats-bar {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 0.5rem;
+      margin-bottom: 1rem;
+    }
+
+    .stat-cell {
+      background: #f7f8fa;
+      border-radius: 8px;
+      padding: 0.55rem 0.5rem;
+      text-align: center;
+    }
+
+    .stat-num {
+      font-size: 1.4rem;
+      font-weight: 700;
+      line-height: 1;
+      color: #1a1a2e;
+    }
+
+    .stat-label {
+      font-size: 0.7rem;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: #888;
+      margin-top: 0.2rem;
+    }
+
+    .stat-cell.stat-overdue .stat-num { color: #8e44ad; }
+    .stat-cell.stat-today   .stat-num { color: #c0392b; }
+    .stat-cell.stat-open    .stat-num { color: #4a90d9; }
+    .stat-cell.stat-done    .stat-num { color: #27ae60; }
+
+    /* Overview sort controls */
+    .overview-sort-row {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      margin-bottom: 0.6rem;
+      flex-wrap: nowrap;
+      overflow-x: auto;
+      padding-bottom: 0.2rem;
+    }
+
+    .overview-sort-row label {
+      text-transform: none;
+      letter-spacing: 0;
+      font-size: 0.8rem;
+      color: #666;
+      margin: 0;
+      white-space: nowrap;
+      flex-shrink: 0;
+    }
+
+    .overview-sort-row select {
+      width: auto;
+      font-size: 0.82rem;
+      padding: 0.3rem 0.55rem;
+      flex-shrink: 0;
+    }
+
+    .overview-sort-row input[type="text"],
+    .overview-sort-row input[type="date"] {
+      width: 120px;
+      min-width: 80px;
+      font-size: 0.82rem;
+      padding: 0.3rem 0.55rem;
+      flex-shrink: 0;
+    }
+
+    .ov-controls-divider {
+      display: inline-block;
+      width: 1px;
+      height: 1.4rem;
+      background: #d0d4dc;
+      margin: 0 0.25rem;
+      flex-shrink: 0;
+    }
+
+    .ov-add-task-wrap { margin-bottom: 1rem; }
+    .ov-add-task-toggle {
+      margin-bottom: 0;
+      cursor: pointer;
+      justify-content: flex-start;
+      gap: 0.5rem;
+    }
+    .ov-add-task-symbol {
+      display: inline-block;
+      min-width: 1.2em;
+      font-weight: 700;
+      font-size: 1.1em;
+    }
+    .ov-add-task-wrap .collapsible-body { margin-top: 0.5rem; }
+    .ov-add-task-row {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      margin-bottom: 1rem;
+      flex-wrap: wrap;
+    }
+    .ov-add-task-row input[type="text"] {
+      flex: 1;
+      min-width: 160px;
+      padding: 0.5rem 0.65rem;
+      font-size: 0.9rem;
+      border: 1.5px solid #d0d4dc;
+      border-radius: 8px;
+    }
+    .ov-add-task-row input[type="date"],
+    .ov-add-task-row select {
+      padding: 0.5rem 0.65rem;
+      font-size: 0.88rem;
+      border: 1.5px solid #d0d4dc;
+      border-radius: 8px;
+    }
+    .ov-add-task-row select { min-width: 100px; }
+    .ov-add-task-row .btn-primary { flex-shrink: 0; }
+
+    /* Overview table */
+    .ov-bulk-bar {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      padding: 0.5rem 0.75rem;
+      background: #e3f2fd;
+      border: 1px solid #90caf9;
+      border-radius: 8px;
+      margin-bottom: 0.75rem;
+      flex-wrap: wrap;
+    }
+    .ov-bulk-count { font-weight: 600; font-size: 0.9rem; margin-right: 0.5rem; }
+    .ov-bulk-btn {
+      padding: 0.3rem 0.6rem;
+      font-size: 0.82rem;
+      border: 1px solid #b0bec5;
+      border-radius: 6px;
+      background: #fff;
+      cursor: pointer;
+    }
+    .ov-bulk-btn:hover { background: #f5f5f5; }
+    .ov-bulk-delete { color: #c62828; border-color: #ef9a9a; }
+    .ov-bulk-delete:hover { background: #ffebee; }
+    .ov-bulk-bar input[type="date"] {
+      font-size: 0.82rem;
+      padding: 0.25rem 0.4rem;
+      border-radius: 6px;
+      border: 1px solid #b0bec5;
+    }
+    .ov-bulk-dropdown-wrap {
+      position: relative;
+    }
+    .ov-bulk-dropdown-btn {
+      padding: 0.3rem 0.6rem;
+      font-size: 0.82rem;
+      border: 1px solid #b0bec5;
+      border-radius: 6px;
+      background: #fff;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 0.35rem;
+    }
+    .ov-bulk-dropdown-btn:hover { background: #f5f5f5; }
+    .ov-bulk-dropdown {
+      display: none;
+      position: absolute;
+      top: 100%;
+      left: 0;
+      margin-top: 0.2rem;
+      background: #fff;
+      border: 1px solid #b0bec5;
+      border-radius: 8px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+      z-index: 100;
+      min-width: 140px;
+      max-height: 220px;
+      overflow-y: auto;
+    }
+    .ov-bulk-dropdown.open { display: block; }
+    .ov-bulk-dropdown-option {
+      padding: 0.4rem 0.6rem;
+      cursor: pointer;
+      font-size: 0.82rem;
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+      white-space: nowrap;
+    }
+    .ov-bulk-dropdown-option:hover { background: #f0f4f8; }
+    .ov-bulk-dropdown-option .badge { font-size: 0.7rem; padding: 0.12rem 0.45rem; }
+    .ov-bulk-dropdown-option .status-pill { font-size: 0.7rem; padding: 0.15rem 0.5rem; }
+    .ov-select-col { width: 36px; min-width: 36px; padding: 0.4rem !important; text-align: center; }
+    .ov-select-col input[type="checkbox"] { cursor: pointer; }
+
+    .overview-table-wrap {
+      overflow-x: auto;
+      margin: 0 -0.25rem;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.875rem;
+    }
+
+    thead th {
+      text-align: left;
+      padding: 0.55rem 0.6rem;
+      font-size: 0.75rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: #666;
+      border-bottom: 2px solid #eee;
+      white-space: nowrap;
+      cursor: pointer;
+      user-select: none;
+      position: relative;
+    }
+
+    thead th:hover { color: #333; }
+
+    thead th .sort-arrow {
+      margin-left: 0.25rem;
+      opacity: 0.4;
+      font-size: 0.7rem;
+    }
+
+    thead th.sorted .sort-arrow { opacity: 1; color: #4a90d9; }
+
+    thead th.dragging { opacity: 0.5; }
+    thead th.drag-over { border-left: 2px solid #4a90d9; }
+    .col-resizer {
+      position: absolute;
+      top: 0;
+      right: 0;
+      width: 6px;
+      height: 100%;
+      cursor: col-resize;
+      user-select: none;
+    }
+    .col-resizer:hover { background: rgba(74,144,217,0.2); }
+    .ov-task-cell {
+      display: flex;
+      align-items: center;
+      gap: 0.35rem;
+    }
+    .ov-subtask-indicator {
+      font-size: 0.95rem;
+      opacity: 0.9;
+      flex-shrink: 0;
+    }
+    .ov-subtask-toggle {
+      cursor: pointer;
+      font-size: 0.75rem;
+      padding: 0.15rem;
+      border-radius: 4px;
+      flex-shrink: 0;
+      user-select: none;
+    }
+    .ov-subtask-toggle:hover { background: rgba(255,255,255,0.25); }
+    tbody tr.row-open .ov-subtask-toggle:hover { background: rgba(0,0,0,0.1); }
+    tbody tr.row-open .ov-subtask-indicator { opacity: 0.7; }
+    .ov-add-subtask-btn {
+      background: transparent;
+      border: 1.5px solid rgba(255,255,255,0.45);
+      color: rgba(255,255,255,0.85);
+      border-radius: 5px;
+      padding: 0.18rem 0.45rem;
+      font-size: 0.9rem;
+      font-weight: 700;
+      cursor: pointer;
+      line-height: 1;
+      flex-shrink: 0;
+      transition: background 0.15s, border-color 0.15s;
+    }
+    .ov-add-subtask-btn:hover {
+      background: rgba(255,255,255,0.22);
+      border-color: rgba(255,255,255,0.8);
+    }
+    tbody tr.row-open .ov-add-subtask-btn {
+      border-color: rgba(0,0,0,0.25);
+      color: rgba(0,0,0,0.55);
+    }
+    tbody tr.row-open .ov-add-subtask-btn:hover {
+      background: rgba(0,0,0,0.08);
+      border-color: rgba(0,0,0,0.45);
+      color: #27ae60;
+    }
+    tr.subtask-row .ov-task-text { padding-left: 1.25rem; }
+    tr.subtask-row td:first-child { padding-left: 1.5rem; }
+
+    tr.ov-add-subtask-row {
+      background: #e9eaec;
+      border-bottom: 1px solid #d5d7db;
+    }
+    tr.ov-add-subtask-row td.ov-task-col { padding-left: 1.5rem; }
+    tr.ov-add-subtask-row .ov-subtask-input {
+      width: 100%;
+      min-width: 0;
+      padding: 0.35rem 0.5rem;
+      border: 1px solid #b0b5bc;
+      border-radius: 6px;
+      font-size: 0.9rem;
+      background: #fff;
+    }
+    tr.ov-add-subtask-row .ov-subtask-input:focus {
+      outline: none;
+      border-color: #4a90d9;
+      box-shadow: 0 0 0 2px rgba(74,144,217,0.25);
+    }
+
+    tbody tr {
+      border-bottom: 1px solid #f2f2f2;
+      transition: background 0.1s;
+    }
+
+    tbody tr:last-child { border-bottom: none; }
+
+    /* Future — light grey */
+    tbody tr.row-open {
+      background: #e9eaec;
+      border-bottom-color: #d5d7db;
+      color: #333;
+    }
+    tbody tr.row-open:hover { background: #dddfe3; }
+
+    /* Complete — green */
+    tbody tr.row-done {
+      background: #1e8a4a;
+      border-bottom-color: #197a40;
+      color: #fff;
+      opacity: 0.88;
+    }
+    tbody tr.row-done:hover { background: #197a40; }
+
+    /* Due Today — red */
+    tbody tr.row-today {
+      background: #c0392b;
+      border-bottom-color: #a93226;
+      color: #fff;
+    }
+    tbody tr.row-today:hover { background: #a93226; }
+
+    /* Overdue — purple */
+    tbody tr.row-overdue {
+      background: #8e44ad;
+      border-bottom-color: #7d3c98;
+      color: #fff;
+    }
+    tbody tr.row-overdue:hover { background: #7d3c98; }
+
+    tbody td {
+      padding: 0.55rem 0.6rem;
+      vertical-align: middle;
+    }
+
+    #overviewTable th[data-col="category"],
+    #overviewTable th[data-col="tag"],
+    #overviewTable th[data-col="dueDate"],
+    #overviewTable th[data-col="status"],
+    #overviewTable td[data-col="category"],
+    #overviewTable td[data-col="tag"],
+    #overviewTable td[data-col="dueDate"],
+    #overviewTable td[data-col="status"] {
+      text-align: center;
+    }
+
+    .ov-task-text {
+      font-weight: 500;
+      min-width: 0;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    tbody tr.row-done .ov-task-text {
+      text-decoration: line-through;
+      color: rgba(255,255,255,0.75);
+    }
+
+    /* Colored rows: keep dates legible on dark backgrounds */
+    tbody tr.row-done .ov-date,
+    tbody tr.row-today .ov-date,
+    tbody tr.row-overdue .ov-date { color: rgba(255,255,255,0.9); }
+
+    tbody tr.row-open .ov-date { color: #555; }
+
+    tbody tr.row-open span[style],
+    tbody tr.row-done span[style],
+    tbody tr.row-today span[style],
+    tbody tr.row-overdue span[style] { opacity: 0.95; }
+
+    .ov-date {
+      white-space: nowrap;
+      font-size: 0.82rem;
+      color: #555;
+    }
+
+    .ov-date.overdue { color: #8e44ad; font-weight: 600; }
+    .ov-date.today   { color: #c0392b; font-weight: 600; }
+
+    /* Status pill */
+    .status-pill {
+      display: inline-block;
+      padding: 0.2rem 0.6rem;
+      border-radius: 999px;
+      font-size: 0.75rem;
+      font-weight: 700;
+      cursor: pointer;
+      transition: opacity 0.15s, transform 0.1s;
+      white-space: nowrap;
+    }
+
+    .status-pill:hover { opacity: 0.8; transform: scale(0.96); }
+    .status-pill.open  { background: #e8f0fb; color: #2c6fad; }
+    .status-pill.done  { background: #e6f9ef; color: #1e7e4c; }
+
+    .ov-remove-btn {
+      background: transparent;
+      border: 1.5px solid rgba(255,255,255,0.45);
+      color: rgba(255,255,255,0.85);
+      border-radius: 5px;
+      padding: 0.18rem 0.45rem;
+      font-size: 0.78rem;
+      font-weight: 700;
+      cursor: pointer;
+      line-height: 1;
+      transition: background 0.15s, border-color 0.15s, color 0.15s;
+    }
+
+    .ov-remove-btn:hover {
+      background: rgba(255,255,255,0.22);
+      border-color: rgba(255,255,255,0.8);
+      color: #fff;
+    }
+
+    .ov-edit-btn {
+      background: transparent;
+      border: 1.5px solid rgba(255,255,255,0.45);
+      color: rgba(255,255,255,0.85);
+      border-radius: 5px;
+      padding: 0.18rem 0.45rem;
+      font-size: 0.78rem;
+      font-weight: 700;
+      cursor: pointer;
+      line-height: 1;
+      margin-right: 0.25rem;
+      transition: background 0.15s, border-color 0.15s;
+    }
+    .ov-edit-btn:hover { background: rgba(255,255,255,0.22); border-color: rgba(255,255,255,0.8); }
+    tbody tr.row-open .ov-edit-btn { border-color: rgba(0,0,0,0.25); color: rgba(0,0,0,0.55); }
+    tbody tr.row-open .ov-edit-btn:hover { background: rgba(0,0,0,0.08); border-color: rgba(0,0,0,0.45); color: #2980b9; }
+
+    tr.ov-edit-row .ov-edit-input, tr.ov-edit-row .ov-edit-select {
+      width: 100%;
+      min-width: 0;
+      padding: 0.3rem 0.5rem;
+      font-size: 0.85rem;
+      border: 1px solid #b0b5bc;
+      border-radius: 6px;
+      background: #fff;
+    }
+    tr.ov-edit-row .ov-edit-input:focus, tr.ov-edit-row .ov-edit-select:focus {
+      outline: none;
+      border-color: #4a90d9;
+    }
+    .ov-save-btn { background: #27ae60; color: #fff; border: none; padding: 0.3rem 0.6rem; border-radius: 6px; font-size: 0.8rem; cursor: pointer; font-weight: 600; }
+    .ov-save-btn:hover { background: #219a45; }
+    .ov-cancel-btn { background: transparent; color: inherit; border: 1px solid currentColor; padding: 0.3rem 0.6rem; border-radius: 6px; font-size: 0.8rem; cursor: pointer; margin-left: 0.25rem; }
+    .ov-cancel-btn:hover { opacity: 0.8; }
+
+    /* On the light grey Open rows, use a dark-style remove button */
+    tbody tr.row-open .ov-remove-btn {
+      border-color: rgba(0,0,0,0.25);
+      color: rgba(0,0,0,0.55);
+    }
+
+    tbody tr.row-open .ov-remove-btn:hover {
+      background: rgba(0,0,0,0.08);
+      border-color: rgba(0,0,0,0.45);
+      color: #c0392b;
+    }
+
+    .overview-empty {
+      text-align: center;
+      color: #bbb;
+      padding: 1.5rem;
+      font-size: 0.9rem;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="admin-panel-overlay hidden" id="adminPanelOverlay">
+    <div class="admin-panel">
+      <h3>Admin – Usage Stats</h3>
+      <button class="btn-primary" id="adminGetStatsBtn">Get usage stats</button>
+      <div class="stats-result" id="adminStatsResult"></div>
+      <button class="login-btn close-btn" id="adminPanelCloseBtn">Close</button>
+    </div>
+  </div>
+
+  <div class="config-panel-overlay hidden" id="configPanelOverlay">
+    <div class="config-panel">
+      <div class="config-panel-header">
+        <h3>⚙️ Configuration</h3>
+        <button class="login-btn close-btn" id="configPanelCloseBtn">Close</button>
+      </div>
+      <div class="config-panel-body">
+        <!-- Categories Manager -->
+        <div class="card" id="categoriesCard">
+          <div class="card-title" id="categoriesToggle">
+            <span>📁 Categories</span>
+            <span class="toggle-icon">▼</span>
+          </div>
+          <div class="collapsible-body" id="categoriesBody">
+            <div id="categoriesList"></div>
+            <div class="section-label">Add a Category</div>
+            <div class="field">
+              <label for="categoryName">Category Name</label>
+              <input type="text" id="categoryName" placeholder="e.g. Personal, School, Exercise">
+            </div>
+            <div class="field">
+              <label for="categoryDesc">Description</label>
+              <textarea id="categoryDesc" placeholder="Optional description…"></textarea>
+            </div>
+            <button class="btn-primary btn-full" id="addCategoryBtn">Add Category</button>
+          </div>
+        </div>
+
+        <!-- Tags Manager -->
+        <div class="card" id="tagsCard">
+          <div class="card-title" id="tagsToggle">
+            <span>🏷️ Tags</span>
+            <span class="toggle-icon">▼</span>
+          </div>
+          <div class="collapsible-body" id="tagsBody">
+            <div id="tagsList"></div>
+            <div class="section-label">Add a Tag</div>
+            <div class="field">
+              <label for="tagName">Tag Name</label>
+              <input type="text" id="tagName" placeholder="e.g. Course, Activity">
+            </div>
+            <div class="field">
+              <label for="tagColor">Color</label>
+              <div class="color-picker-row">
+                <input type="color" id="tagColor" value="#4a90d9" title="Choose color">
+              </div>
+            </div>
+            <button class="btn-primary btn-full" id="addTagBtn">Add Tag</button>
+          </div>
+        </div>
+
+        <!-- Import -->
+        <div class="card" id="importAiCard">
+          <div class="card-title" id="importAiToggle">
+            <span>📥 Import</span>
+            <span class="toggle-icon">▼</span>
+          </div>
+          <div class="collapsible-body" id="importAiBody">
+            <p class="import-hint" style="margin:0;font-size:0.9rem">Use Import button for CSV or PDF. PDF: web app uses API (log in required); Electron uses <code>pdf_to_csv.py</code>. Set <code>ANTHROPIC_API_KEY</code> on server for AI parsing.</p>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+  <div class="page-header">
+    <div class="header-left">
+      <div class="header-title-wrap">
+        <h1><span class="tasktastic-logo" aria-hidden="true"><svg viewBox="0 0 48 48" width="38" height="38" fill="none" xmlns="http://www.w3.org/2000/svg"><defs><linearGradient id="ttGrad" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" style="stop-color:#fff"/><stop offset="100%" style="stop-color:#e8f4fc"/></linearGradient><linearGradient id="ttCheck" x1="0%" y1="100%" x2="100%" y2="0%"><stop offset="0%" style="stop-color:#27ae60"/><stop offset="100%" style="stop-color:#2ecc71"/></linearGradient></defs><circle cx="24" cy="24" r="22" fill="url(#ttGrad)" stroke="white" stroke-width="2" opacity="0.95"/><path d="M12 22l5 5 9-9" stroke="url(#ttCheck)" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" fill="none"/><text x="30" y="26" text-anchor="middle" font-family="system-ui,-apple-system,sans-serif" font-weight="900" font-size="15" fill="#4a90d9" letter-spacing="-0.5">TT</text></svg></span> TaskTastic</h1>
+      </div>
+      <div class="auth-inline" id="authInlineForm" style="display:none">
+        <input type="email" id="authEmail" placeholder="Email">
+        <input type="password" id="authPassword" placeholder="Password">
+        <button class="btn-primary" id="authLoginBtn">Log in</button>
+        <button class="toggle-overview-btn" id="authRegisterBtn">Register</button>
+      </div>
+      <span class="auth-error-inline" id="authError"></span>
+      <div class="user-logout-wrap" id="userLogoutWrap" style="display:none">
+        <span class="user-email-display" id="userEmailDisplay"></span>
+        <button class="admin-link" id="adminBtn" style="display:none" title="Admin – usage stats">Admin</button>
+        <button class="logout-btn" id="logoutBtn">Log out</button>
+      </div>
+    </div>
+    <div class="header-right">
+      <div class="import-group">
+        <div class="import-buttons-row">
+          <button class="import-csv-btn" id="csvImportBtn" title="Import from CSV">📥 Import CSV</button>
+          <button class="import-pdf-btn" id="pdfImportBtn" title="Import from PDF (syllabus, schedule)">📄 Import PDF</button>
+        </div>
+        <div class="import-progress" id="importProgress" aria-hidden="true">
+          <div class="import-progress-bar"></div>
+          <span class="import-progress-text" id="importProgressText">Importing…</span>
+        </div>
+      </div>
+      <button class="reset-btn" id="resetBtn">🗑 Reset All Tasks</button>
+      <button class="settings-gear-btn" id="configBtn" title="Settings – Categories, Tags">⚙</button>
+    </div>
+  </div>
+  <input type="file" id="csvImportInput" accept=".csv" style="display:none">
+  <input type="file" id="pdfImportInput" accept=".pdf" style="display:none">
+
+  <div class="app-wrapper" id="appWrapper">
+    <!-- ══════════════ TASK OVERVIEW PANE ══════════════ -->
+    <div class="right-pane" id="rightPane">
+      <div class="card overview-card">
+        <div class="card-title" style="cursor:default;">
+          <span>📊 Task Overview</span>
+        </div>
+
+        <!-- Add Task (collapsible) -->
+        <div class="ov-add-task-wrap">
+          <div class="card-title ov-add-task-toggle" id="ovAddTaskToggle">
+            <span class="ov-add-task-symbol" id="ovAddTaskSymbol" title="Click to expand">+</span>
+            <span> Add Task</span>
+          </div>
+          <div class="collapsible-body" id="ovAddTaskBody">
+            <div class="ov-add-task-row">
+              <input type="text" id="newTask" placeholder="What do you need to do?" enterkeyhint="done">
+              <input type="date" id="dueDate" title="Due date">
+              <select id="categorySelect" title="Category">
+                <option value="">— Category —</option>
+              </select>
+              <select id="tagSelect" title="Tag">
+                <option value="">— Tag —</option>
+              </select>
+              <button class="btn-primary" id="addTaskBtn">Add Task</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Stats -->
+        <div class="stats-bar">
+          <div class="stat-cell stat-open">
+            <div class="stat-num" id="statOpen">0</div>
+            <div class="stat-label">Open</div>
+          </div>
+          <div class="stat-cell stat-done">
+            <div class="stat-num" id="statDone">0</div>
+            <div class="stat-label">Complete</div>
+          </div>
+          <div class="stat-cell stat-today">
+            <div class="stat-num" id="statToday">0</div>
+            <div class="stat-label">Due Today</div>
+          </div>
+          <div class="stat-cell stat-overdue">
+            <div class="stat-num" id="statOverdue">0</div>
+            <div class="stat-label">Overdue</div>
+          </div>
+        </div>
+
+        <!-- Sort + Filter controls -->
+        <div class="overview-sort-row">
+          <label for="ovSort">Sort by:</label>
+          <select id="ovSort">
+            <option value="dueDate">Due Date</option>
+            <option value="text">Task</option>
+            <option value="category">Category</option>
+            <option value="tag">Tag</option>
+            <option value="status">Status</option>
+          </select>
+          <select id="ovDir">
+            <option value="asc">Ascending</option>
+            <option value="desc">Descending</option>
+          </select>
+
+          <span class="ov-controls-divider"></span>
+
+          <label for="ovFilterCategory">Category:</label>
+          <select id="ovFilterCategory">
+            <option value="">All</option>
+          </select>
+          <label for="ovFilterTag">Tag:</label>
+          <select id="ovFilterTag">
+            <option value="">All</option>
+          </select>
+          <label for="ovFilterTask">Task:</label>
+          <input type="text" id="ovFilterTask" placeholder="Search…">
+          <label for="ovFilterDate">Date:</label>
+          <select id="ovFilterDate">
+            <option value="">All</option>
+            <option value="overdue">Overdue</option>
+            <option value="today">Today</option>
+            <option value="tomorrow">Tomorrow</option>
+            <option value="week">This Week</option>
+            <option value="date">Specific Date</option>
+            <option value="future">Upcoming</option>
+            <option value="none">No Date</option>
+          </select>
+          <input type="date" id="ovFilterDateSpecific" title="Select date" style="display:none">
+          <label for="ovFilterStatus">Status:</label>
+          <select id="ovFilterStatus">
+            <option value="">All</option>
+            <option value="open">Open</option>
+            <option value="done">Complete</option>
+          </select>
+          <label for="ovFilterSubtasks">Subtasks:</label>
+          <select id="ovFilterSubtasks">
+            <option value="">All</option>
+            <option value="has">Has subtasks</option>
+            <option value="none">No subtasks</option>
+          </select>
+        </div>
+
+        <!-- Bulk actions bar (shown when tasks selected) -->
+        <div class="ov-bulk-bar" id="ovBulkBar" style="display:none">
+          <span class="ov-bulk-count" id="ovBulkCount">0 selected</span>
+          <div class="ov-bulk-dropdown-wrap" id="ovBulkStatusWrap">
+            <button type="button" class="ov-bulk-dropdown-btn" id="ovBulkStatusBtn" title="Set status">Set status…</button>
+            <div class="ov-bulk-dropdown" id="ovBulkStatusMenu"></div>
+          </div>
+          <div class="ov-bulk-dropdown-wrap" id="ovBulkCategoryWrap">
+            <button type="button" class="ov-bulk-dropdown-btn" id="ovBulkCategoryBtn" title="Set category">Set category…</button>
+            <div class="ov-bulk-dropdown" id="ovBulkCategoryMenu"></div>
+          </div>
+          <div class="ov-bulk-dropdown-wrap" id="ovBulkTagWrap">
+            <button type="button" class="ov-bulk-dropdown-btn" id="ovBulkTagBtn" title="Set tag">Set tag…</button>
+            <div class="ov-bulk-dropdown" id="ovBulkTagMenu"></div>
+          </div>
+          <input type="date" id="ovBulkDate" title="Set due date">
+          <button type="button" class="ov-bulk-btn ov-bulk-delete" id="ovBulkDelete" title="Delete selected">Delete</button>
+          <button type="button" class="ov-bulk-btn" id="ovBulkClear" title="Clear selection">Clear</button>
+          <button type="button" class="ov-bulk-btn" id="ovBulkUndo" title="Undo last bulk action" style="display:none">↩ Undo</button>
+        </div>
+
+        <!-- Table -->
+        <div class="overview-table-wrap">
+          <table id="overviewTable">
+            <thead>
+              <tr id="overviewThead"></tr>
+            </thead>
+            <tbody id="overviewBody"></tbody>
+          </table>
+        </div>
+        <p class="overview-empty" id="overviewEmpty" style="display:none">No tasks yet.</p>
+      </div>
+    </div><!-- /right-pane -->
+
+  </div><!-- /app-wrapper -->
+
+  <div id="poohOverlay">
+    <div id="poohFloaties"></div>
+    <div id="poohContainer">
+      <img id="poohGif" src="" alt="Celebration">
+      <div class="pooh-honey-bar"></div>
+      <div class="pooh-text"  id="poohText">🍯 Task Complete! 🍯</div>
+      <div class="pooh-sub"   id="poohSub">Oh bother… you did it! ✨</div>
+      <div class="pooh-dismiss-hint">click anywhere to dismiss</div>
+    </div>
+  </div>
+
+  <script>
+    /* ═══════════════════════════════════════════
+       API & Auth
+    ═══════════════════════════════════════════ */
+    const USE_API = (window.location.protocol === 'http:' || window.location.protocol === 'https:');
+    const API_URL = 'https://todo-list-app-rrjb.onrender.com';
+    const LOCAL_ORIGINS = ['http://localhost:3001', 'http://127.0.0.1:3001'];
+    const API_BASE = (() => {
+      if (!USE_API) return '';
+      if (LOCAL_ORIGINS.includes(window.location.origin)) return '';
+      if (/^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(window.location.origin)) return 'http://localhost:3001';
+      return API_URL;
+    })();
+
+    // Celebration GIFs shown only for this user (set to your email, or null to disable)
+    const GIF_ENABLED_EMAIL = 'ccj2006@outlook.com';
+
+    function getToken() { return localStorage.getItem('td_token'); }
+    function setToken(t) { localStorage.setItem('td_token', t); }
+    function clearToken() { localStorage.removeItem('td_token'); }
+
+    let currentUser = null;
+
+    async function apiFetch(path, options = {}) {
+      const token = getToken();
+      const headers = { ...options.headers, 'Content-Type': 'application/json' };
+      if (token) headers['Authorization'] = 'Bearer ' + token;
+      const res = await fetch(API_BASE + path, { ...options, headers });
+      if (res.status === 401) { clearToken(); throw new Error('Unauthorized'); }
+      return res;
+    }
+
+    function showAuthForm() {
+      document.getElementById('authInlineForm').style.display = 'flex';
+      document.getElementById('userLogoutWrap').style.display = 'none';
+      document.getElementById('authError').textContent = '';
+    }
+    function hideAuthForm() {
+      document.getElementById('authInlineForm').style.display = 'none';
+      document.getElementById('userLogoutWrap').style.display = 'flex';
+      document.getElementById('userEmailDisplay').textContent = currentUser?.email || '';
+      document.getElementById('adminBtn').style.display = (currentUser?.role === 'admin') ? '' : 'none';
+    }
+
+    let userPreferences = {};
+    async function loadDataFromApi() {
+      const res = await apiFetch('/api/data');
+      if (!res.ok) throw new Error('Failed to load data');
+      const data = await res.json();
+      courses = data.courses || [];
+      tags = data.tags || [];
+      tasks = (data.tasks || []).map(t => ({
+        ...t,
+        id: String(t.id || ''),
+        parentId: String(t.parentId || '')
+      }));
+      if (data.preferences && typeof data.preferences === 'object') {
+        Object.assign(userPreferences, data.preferences);
+      }
+    }
+
+    function getStoredPreferences() {
+      if (USE_API) return userPreferences;
+      try {
+        const raw = localStorage.getItem('td_preferences');
+        return raw ? JSON.parse(raw) : {};
+      } catch { return {}; }
+    }
+
+    function getCurrentPreferences() {
+      const prefs = {
+        columnConfig,
+        sortCol: document.getElementById('ovSort')?.value || 'dueDate',
+        sortDir: document.getElementById('ovDir')?.value || 'asc',
+        filterCategory: document.getElementById('ovFilterCategory')?.value || '',
+        filterTag: document.getElementById('ovFilterTag')?.value || '',
+        filterTask: document.getElementById('ovFilterTask')?.value || '',
+        filterDate: document.getElementById('ovFilterDate')?.value || '',
+        filterDateSpecific: document.getElementById('ovFilterDateSpecific')?.value || '',
+        filterStatus: document.getElementById('ovFilterStatus')?.value || '',
+        filterSubtasks: document.getElementById('ovFilterSubtasks')?.value || '',
+        collapsedSubtasks: Array.from(collapsedSubtasks || []),
+        addTaskCollapsed: !ovAddTaskOpen,
+        addTaskCategory: document.getElementById('categorySelect')?.value || '',
+        addTaskTag: document.getElementById('tagSelect')?.value || ''
+      };
+      return prefs;
+    }
+
+    function applyPreferences(prefs) {
+      if (!prefs || typeof prefs !== 'object') return;
+      const DEFAULT_COLS = [
+        { id: 'category', label: 'Category', sortable: true, minWidth: 80 },
+        { id: 'tag', label: 'Tag', sortable: true, minWidth: 70 },
+        { id: 'text', label: 'Task', sortable: true, minWidth: 120 },
+        { id: 'dueDate', label: 'Due Date', sortable: true, minWidth: 80 },
+        { id: 'status', label: 'Status', sortable: true, minWidth: 70 },
+        { id: 'actions', label: '', sortable: false, minWidth: 80, fixed: true }
+      ];
+      if (Array.isArray(prefs.columnConfig) && prefs.columnConfig.length === DEFAULT_COLS.length) {
+        columnConfig = prefs.columnConfig.map((c, i) => ({ ...DEFAULT_COLS[i], ...c }));
+      } else if (USE_API && getToken()) {
+        columnConfig = DEFAULT_COLS.map(c => ({ ...c, width: c.minWidth }));
+      }
+      const ovSort = document.getElementById('ovSort');
+      const ovDir = document.getElementById('ovDir');
+      if (ovSort && prefs.sortCol) ovSort.value = prefs.sortCol;
+      if (ovDir && prefs.sortDir) ovDir.value = prefs.sortDir;
+      const fc = document.getElementById('ovFilterCategory');
+      const ft = document.getElementById('ovFilterTag');
+      const ftask = document.getElementById('ovFilterTask');
+      const fdate = document.getElementById('ovFilterDate');
+      const fstatus = document.getElementById('ovFilterStatus');
+      if (fc && prefs.filterCategory !== undefined) fc.value = prefs.filterCategory;
+      if (ft && prefs.filterTag !== undefined) ft.value = prefs.filterTag;
+      if (ftask && prefs.filterTask !== undefined) ftask.value = prefs.filterTask;
+      if (fdate && prefs.filterDate !== undefined) fdate.value = prefs.filterDate;
+      const fdateSpecific = document.getElementById('ovFilterDateSpecific');
+      if (fdateSpecific) {
+        if (prefs.filterDateSpecific !== undefined) fdateSpecific.value = prefs.filterDateSpecific;
+        else if (fdate?.value === 'date' && !fdateSpecific.value) fdateSpecific.value = todayStr();
+        fdateSpecific.style.display = (fdate?.value === 'date') ? '' : 'none';
+      }
+      if (fstatus && prefs.filterStatus !== undefined) fstatus.value = prefs.filterStatus;
+      const fsub = document.getElementById('ovFilterSubtasks');
+      if (fsub && prefs.filterSubtasks !== undefined) fsub.value = prefs.filterSubtasks;
+      if (Array.isArray(prefs.collapsedSubtasks)) collapsedSubtasks = new Set(prefs.collapsedSubtasks);
+      ovAddTaskOpen = prefs.addTaskCollapsed === false;
+      const addBody = document.getElementById('ovAddTaskBody');
+      const addSymbol = document.getElementById('ovAddTaskSymbol');
+      const addToggle = document.getElementById('ovAddTaskToggle');
+      if (addBody && addSymbol && addToggle) {
+        if (ovAddTaskOpen) {
+          addBody.style.maxHeight = 'none';
+          addSymbol.textContent = '−';
+          addSymbol.title = 'Click to collapse';
+          addToggle.classList.remove('collapsed');
+        } else {
+          addBody.style.maxHeight = '0';
+          addSymbol.textContent = '+';
+          addSymbol.title = 'Click to expand';
+          addToggle.classList.add('collapsed');
+        }
+      }
+      const catSel = document.getElementById('categorySelect');
+      const tagSel = document.getElementById('tagSelect');
+      if (catSel && prefs.addTaskCategory !== undefined) catSel.value = prefs.addTaskCategory;
+      if (tagSel && prefs.addTaskTag !== undefined) tagSel.value = prefs.addTaskTag;
+    }
+
+    function savePreferencesToStorage() {
+      const prefs = getCurrentPreferences();
+      if (USE_API && getToken()) {
+        apiFetch('/api/preferences', { method: 'PUT', body: JSON.stringify({ preferences: prefs }) }).catch(() => {});
+      } else if (!USE_API) {
+        try { localStorage.setItem('td_preferences', JSON.stringify(prefs)); } catch (_) {}
+      }
+    }
+
+    /* ═══════════════════════════════════════════
+       Data
+    ═══════════════════════════════════════════ */
+    const COURSE_COLORS = [
+      '#4a90d9','#27ae60','#8e44ad','#e67e22',
+      '#e74c3c','#16a085','#2980b9','#c0392b',
+      '#7f8c8d','#d35400'
+    ];
+    function randomColor() {
+      return COURSE_COLORS[Math.floor(Math.random() * COURSE_COLORS.length)];
+    }
+
+    let courses = USE_API ? (getToken() ? [] : JSON.parse(localStorage.getItem('td_courses') || '[]')) : JSON.parse(localStorage.getItem('td_courses') || '[]');
+    let tasks   = USE_API ? (getToken() ? [] : JSON.parse(localStorage.getItem('td_tasks')   || '[]')) : JSON.parse(localStorage.getItem('td_tasks')   || '[]');
+    let tags    = USE_API ? (getToken() ? [] : JSON.parse(localStorage.getItem('td_tags')    || '[]')) : JSON.parse(localStorage.getItem('td_tags')    || '[]');
+
+    const DEFAULT_COLUMNS = [
+      { id: 'category', label: 'Category', sortable: true, minWidth: 80 },
+      { id: 'tag', label: 'Tag', sortable: true, minWidth: 70 },
+      { id: 'text', label: 'Task', sortable: true, minWidth: 120 },
+      { id: 'dueDate', label: 'Due Date', sortable: true, minWidth: 80 },
+      { id: 'status', label: 'Status', sortable: true, minWidth: 70 },
+      { id: 'actions', label: '', sortable: false, minWidth: 80, fixed: true }
+    ];
+    let columnConfig = JSON.parse(localStorage.getItem('td_columnConfig') || 'null');
+    if (!columnConfig || !Array.isArray(columnConfig) || columnConfig.length !== DEFAULT_COLUMNS.length) {
+      columnConfig = DEFAULT_COLUMNS.map(c => ({ ...c, width: c.minWidth }));
+    }
+    function saveColumnConfig() {
+      localStorage.setItem('td_columnConfig', JSON.stringify(columnConfig));
+      savePreferencesToStorage();
+    }
+
+    function save() {
+      if (USE_API && getToken()) {
+        apiFetch('/api/sync', {
+          method: 'POST',
+          body: JSON.stringify({
+            courses,
+            tags,
+            tasks: tasks.map(t => ({
+              id: t.id,
+              text: t.text,
+              dueDate: t.dueDate || '',
+              courseId: t.courseId || '',
+              category: t.category || '',
+              done: !!t.done,
+              parentId: t.parentId || ''
+            }))
+          })
+        }).then(r => { if (!r.ok) throw new Error('Sync failed'); }).catch(() => {});
+        return;
+      }
+      localStorage.setItem('td_courses', JSON.stringify(courses));
+      localStorage.setItem('td_tasks',   JSON.stringify(tasks));
+      localStorage.setItem('td_tags',    JSON.stringify(tags));
+    }
+
+    function genId() { return Date.now().toString(36) + Math.random().toString(36).slice(2); }
+
+    /* ═══════════════════════════════════════════
+       Date utilities
+    ═══════════════════════════════════════════ */
+    function todayStr() {
+      const d = new Date();
+      return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+    }
+
+    function tomorrowStr() {
+      const d = new Date();
+      d.setDate(d.getDate() + 1);
+      return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+    }
+
+    function endOfWeekStr() {
+      const d = new Date();
+      const day = d.getDay();
+      const toSaturday = (6 - day + 7) % 7;
+      d.setDate(d.getDate() + toSaturday);
+      return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+    }
+
+    function formatDate(iso) {
+      if (!iso) return '';
+      const [y, m, d] = iso.split('-');
+      return new Date(+y, +m-1, +d).toLocaleDateString(undefined, { month:'short', day:'numeric', year:'numeric' });
+    }
+
+    function dueSeverity(iso) {
+      if (!iso) return null;
+      const today = todayStr();
+      if (iso < today) return 'overdue';
+      if (iso === today) return 'today';
+      return 'future';
+    }
+
+    /* ═══════════════════════════════════════════
+       Courses
+    ═══════════════════════════════════════════ */
+    const DEFAULT_CATEGORY_COLOR = '#9ca3af';
+    function categoryColor(cat) {
+      if (cat && cat.color) return cat.color;
+      return DEFAULT_CATEGORY_COLOR;
+    }
+
+    function getCategory(id) { return courses.find(c => c.id === id) || null; }
+
+    function renderCategories() {
+      const list = document.getElementById('categoriesList');
+      list.innerHTML = '';
+      if (courses.length === 0) {
+        list.innerHTML = '<p style="color:#aaa;font-size:0.88rem;margin:0 0 0.75rem">No categories yet.</p>';
+      } else {
+        courses.forEach(c => {
+          const item = document.createElement('div');
+          item.className = 'category-item';
+          const catColor = categoryColor(c);
+          item.style.borderLeftColor = catColor;
+          item.innerHTML = `
+            <div class="category-info">
+              <div class="category-name"><span class="color-dot-label" title="Click to change color"><span class="category-color-dot" style="background:${catColor}"></span></span><input type="color" value="${catColor}" class="color-picker-hidden">${escHtml(c.name)}</div>
+              ${c.description ? `<div class="category-desc">${escHtml(c.description)}</div>` : ''}
+            </div>
+            <button class="btn-danger btn-sm" title="Delete category">✕</button>
+          `;
+          const colorInput = item.querySelector('input[type="color"]');
+          item.querySelector('.color-dot-label').addEventListener('click', (e) => { e.preventDefault(); colorInput.click(); });
+          colorInput.addEventListener('input', () => {
+            c.color = colorInput.value;
+            item.style.borderLeftColor = colorInput.value;
+            item.querySelector('.category-color-dot').style.background = colorInput.value;
+            save();
+            renderOverview();
+          });
+          item.querySelector('button').addEventListener('click', () => deleteCategory(c.id));
+          list.appendChild(item);
+        });
+      }
+      populateCategorySelects();
+      populateFilterCategory();
+    }
+
+    function populateCategorySelects() {
+      const sel = document.getElementById('categorySelect');
+      const prev = sel.value;
+      while (sel.options.length > 1) sel.remove(1);
+      courses.forEach(c => sel.appendChild(new Option(c.name, c.id)));
+      sel.value = prev || '';
+    }
+
+    function populateFilterCategory() {
+      const sel = document.getElementById('ovFilterCategory');
+      const prev = sel.value;
+      while (sel.options.length > 1) sel.remove(1);
+      courses.forEach(c => sel.appendChild(new Option(c.name, c.id)));
+      sel.value = prev || '';
+    }
+
+    function addCategory() {
+      const name = document.getElementById('categoryName').value.trim();
+      const desc = document.getElementById('categoryDesc').value.trim();
+      if (!name) { document.getElementById('categoryName').focus(); return; }
+      if (courses.some(c => c.name.toLowerCase() === name.toLowerCase())) {
+        alert('A category with this name already exists.');
+        return;
+      }
+      courses.push({ id: genId(), name, description: desc, color: DEFAULT_CATEGORY_COLOR });
+      save();
+      renderCategories();
+      renderOverview();
+      document.getElementById('categoryName').value = '';
+      document.getElementById('categoryDesc').value = '';
+    }
+
+    function deleteCategory(id) {
+      if (!confirm('Delete this category? Tasks linked to it will become unassigned.')) return;
+      courses = courses.filter(c => c.id !== id);
+      tasks.forEach(t => { if (t.courseId === id) t.courseId = ''; });
+      save();
+      renderCategories();
+      renderTags();
+      renderTasks();
+    }
+
+    /* ── Tags ── */
+    function getTag(id) { return tags.find(t => t.id === id) || null; }
+    function getTagByName(name) { return tags.find(t => t.name === name) || null; }
+
+    function renderTags() {
+      const list = document.getElementById('tagsList');
+      list.innerHTML = '';
+      if (tags.length === 0) {
+        list.innerHTML = '<p style="color:#aaa;font-size:0.88rem;margin:0 0 0.75rem">No tags yet.</p>';
+      } else {
+        tags.forEach(t => {
+          const item = document.createElement('div');
+          item.className = 'tag-item';
+          const tagColor = t.color || '#4a90d9';
+          item.style.borderLeftColor = tagColor;
+          item.innerHTML = `
+            <div class="tag-info">
+              <div class="tag-name"><span class="color-dot-label" title="Click to change color"><span class="tag-color-dot" style="background:${tagColor}"></span></span><input type="color" value="${tagColor}" class="color-picker-hidden">${escHtml(t.name)}</div>
+            </div>
+            <button class="btn-danger btn-sm" title="Delete tag">✕</button>
+          `;
+          const colorInput = item.querySelector('input[type="color"]');
+          item.querySelector('.color-dot-label').addEventListener('click', (e) => { e.preventDefault(); colorInput.click(); });
+          colorInput.addEventListener('input', () => {
+            t.color = colorInput.value;
+            item.style.borderLeftColor = colorInput.value;
+            item.querySelector('.tag-color-dot').style.background = colorInput.value;
+            save();
+            renderOverview();
+          });
+          item.querySelector('button').addEventListener('click', () => deleteTag(t.id));
+          list.appendChild(item);
+        });
+      }
+      populateTagSelects();
+      populateFilterTag();
+    }
+
+    function populateTagSelects() {
+      const sel = document.getElementById('tagSelect');
+      const prev = sel.value;
+      while (sel.options.length > 1) sel.remove(1);
+      tags.forEach(t => sel.appendChild(new Option(t.name, t.name)));
+      sel.value = prev || '';
+    }
+
+    function populateFilterTag() {
+      const sel = document.getElementById('ovFilterTag');
+      const prev = sel.value;
+      while (sel.options.length > 1) sel.remove(1);
+      tags.forEach(t => sel.appendChild(new Option(t.name, t.name)));
+      sel.value = prev || '';
+    }
+
+    function addTag() {
+      const name = document.getElementById('tagName').value.trim();
+      if (!name) { document.getElementById('tagName').focus(); return; }
+      if (tags.some(t => t.name.toLowerCase() === name.toLowerCase())) {
+        alert('A tag with this name already exists.');
+        return;
+      }
+      const color = document.getElementById('tagColor').value || '#4a90d9';
+      tags.push({ id: genId(), name, color });
+      save();
+      renderTags();
+      renderOverview();
+      document.getElementById('tagName').value = '';
+      document.getElementById('tagColor').value = '#4a90d9';
+    }
+
+    function deleteTag(id) {
+      const tag = tags.find(t => t.id === id);
+      if (!tag) return;
+      if (!confirm('Delete this tag? Tasks with this tag will have it removed.')) return;
+      tags = tags.filter(t => t.id !== id);
+      tasks.forEach(t => { if (t.category === tag.name) t.category = ''; });
+      save();
+      renderTags();
+      renderTasks();
+    }
+
+    /* ═══════════════════════════════════════════
+       Task rendering — overview only
+    ═══════════════════════════════════════════ */
+    function renderTasks() {
+      renderOverview();
+    }
+
+    function addTask() {
+      const text       = document.getElementById('newTask').value.trim();
+      const dueDate    = document.getElementById('dueDate').value;
+      const courseId   = document.getElementById('categorySelect').value;
+      const tagName    = document.getElementById('tagSelect').value;
+      if (!text) { document.getElementById('newTask').focus(); return; }
+      tasks.push({ id: genId(), text, dueDate, courseId, category: tagName || '', done: false, parentId: '' });
+      save();
+      savePreferencesToStorage();
+      document.getElementById('newTask').value = '';
+      document.getElementById('dueDate').value = '';
+      document.getElementById('categorySelect').value = '';
+      document.getElementById('tagSelect').value = '';
+      renderTasks();
+      document.getElementById('newTask').focus();
+    }
+
+    /* ── Subtask expand/collapse state ── */
+    let collapsedSubtasks = new Set();
+    let selectedTaskIds = new Set();
+    let bulkUndoSnapshot = null;
+    let pendingEditTaskId = null;
+    /* ═══════════════════════════════════════════
+       Overview pane (right pane)
+    ═══════════════════════════════════════════ */
+    function renderOverview() {
+      const tbody        = document.getElementById('overviewBody');
+      const ovEmpty      = document.getElementById('overviewEmpty');
+      const sortCol        = document.getElementById('ovSort').value;
+      const sortDir        = document.getElementById('ovDir').value;
+      const filterCategory = document.getElementById('ovFilterCategory').value;
+      const filterTag      = document.getElementById('ovFilterTag').value;
+      const filterTask     = document.getElementById('ovFilterTask').value.trim().toLowerCase();
+      const filterDate     = document.getElementById('ovFilterDate').value;
+      const filterStatus   = document.getElementById('ovFilterStatus').value;
+      const filterSubtasks = document.getElementById('ovFilterSubtasks').value;
+      const today          = todayStr();
+
+      populateCategorySelects();
+      populateTagSelects();
+
+      // Build thead from column config (draggable, resizable)
+      const thead = document.getElementById('overviewThead');
+      thead.innerHTML = '';
+      const selectTh = document.createElement('th');
+      selectTh.className = 'ov-select-col';
+      selectTh.innerHTML = '<input type="checkbox" id="ovSelectAll" title="Select all">';
+      thead.appendChild(selectTh);
+      columnConfig.forEach((col, idx) => {
+        if (col.id === 'actions') {
+          const th = document.createElement('th');
+          th.className = 'ov-actions-col';
+          th.style.width = (col.width || 80) + 'px';
+          th.style.minWidth = (col.minWidth || 80) + 'px';
+          th.innerHTML = '<span class="col-resizer" data-col-idx="' + idx + '"></span>';
+          thead.appendChild(th);
+          return;
+        }
+        const th = document.createElement('th');
+        th.dataset.col = col.id;
+        th.draggable = col.sortable;
+        th.style.width = (col.width || col.minWidth) + 'px';
+        th.style.minWidth = (col.minWidth || 60) + 'px';
+        th.innerHTML = (col.sortable ? (col.label + ' <span class="sort-arrow">' + (sortCol === col.id ? (sortDir === 'asc' ? '↑' : '↓') : '↕') + '</span>') : col.label) +
+          '<span class="col-resizer" data-col-idx="' + idx + '"></span>';
+        th.classList.toggle('sorted', sortCol === col.id);
+        thead.appendChild(th);
+      });
+
+      // Stats
+      const open    = tasks.filter(t => !t.done).length;
+      const done    = tasks.filter(t => t.done).length;
+      const todayCt = tasks.filter(t => !t.done && t.dueDate === today).length;
+      const overdue = tasks.filter(t => !t.done && t.dueDate && t.dueDate < today).length;
+
+      document.getElementById('statOpen').textContent    = open;
+      document.getElementById('statDone').textContent    = done;
+      document.getElementById('statToday').textContent   = todayCt;
+      document.getElementById('statOverdue').textContent = overdue;
+
+      // Apply filters (include subtasks when parent matches)
+      const matchesFilter = t => {
+        if (filterStatus === 'open' && t.done)  return false;
+        if (filterStatus === 'done' && !t.done) return false;
+        if (filterCategory && t.courseId !== filterCategory) return false;
+        if (filterTag && (t.category || '') !== filterTag) return false;
+        if (filterTask && !t.text.toLowerCase().includes(filterTask)) return false;
+        if (filterDate) {
+          const sev = dueSeverity(t.dueDate);
+          const today = todayStr();
+          const tomorrow = tomorrowStr();
+          const endWeek = endOfWeekStr();
+          const filterDateSpecific = document.getElementById('ovFilterDateSpecific')?.value || '';
+          if (filterDate === 'overdue' && sev !== 'overdue') return false;
+          if (filterDate === 'today'   && t.dueDate !== today) return false;
+          if (filterDate === 'tomorrow' && t.dueDate !== tomorrow) return false;
+          if (filterDate === 'week'    && (!t.dueDate || t.dueDate < today || t.dueDate > endWeek)) return false;
+          if (filterDate === 'date'    && t.dueDate !== filterDateSpecific) return false;
+          if (filterDate === 'future'  && sev !== 'future') return false;
+          if (filterDate === 'none'    && t.dueDate) return false;
+        }
+        return true;
+      };
+      const taskHasSubtasks = (task) => tasks.some(x => (x.parentId || '') === (task.id || ''));
+      let visible = tasks.filter(t => !t.parentId && matchesFilter(t));
+      if (filterSubtasks === 'has') visible = visible.filter(t => taskHasSubtasks(t));
+      else if (filterSubtasks === 'none') visible = visible.filter(t => !taskHasSubtasks(t));
+
+      if (tasks.length === 0) {
+        tbody.innerHTML = '';
+        ovEmpty.style.display = 'block';
+        return;
+      }
+
+      if (visible.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="7" style="text-align:center;color:#aaa;padding:1.2rem">No tasks match the current filters.</td></tr>`;
+        ovEmpty.style.display = 'none';
+        return;
+      }
+      ovEmpty.style.display = 'none';
+
+      const sorted = [...visible].sort((a, b) => {
+        let va, vb;
+        if (sortCol === 'text') {
+          va = a.text.toLowerCase(); vb = b.text.toLowerCase();
+        } else if (sortCol === 'category') {
+          va = (getCategory(a.courseId)?.name || '').toLowerCase();
+          vb = (getCategory(b.courseId)?.name || '').toLowerCase();
+        } else if (sortCol === 'tag') {
+          va = (a.category || '').toLowerCase();
+          vb = (b.category || '').toLowerCase();
+        } else if (sortCol === 'dueDate') {
+          va = a.dueDate || '9999-99-99'; vb = b.dueDate || '9999-99-99';
+        } else if (sortCol === 'status') {
+          va = a.done ? 1 : 0; vb = b.done ? 1 : 0;
+        }
+        if (va < vb) return sortDir === 'asc' ? -1 : 1;
+        if (va > vb) return sortDir === 'asc' ? 1 : -1;
+        return 0;
+      });
+
+      tbody.innerHTML = '';
+      const renderTaskRow = (task, isSubtask) => {
+        const category = getCategory(task.courseId);
+        const tag      = getTagByName(task.category);
+        const severity = dueSeverity(task.dueDate);
+
+        const tr = document.createElement('tr');
+        tr.dataset.taskId = task.id;
+        if (isSubtask) tr.classList.add('subtask-row');
+        const selectTd = document.createElement('td');
+        selectTd.className = 'ov-select-col';
+        if (!isSubtask) {
+          selectTd.innerHTML = `<input type="checkbox" class="ov-task-checkbox" data-task-id="${task.id}">`;
+        }
+        tr.appendChild(selectTd);
+        if (task.done)                      tr.classList.add('row-done');
+        else if (severity === 'overdue') tr.classList.add('row-overdue');
+        else if (severity === 'today')   tr.classList.add('row-today');
+        else                             tr.classList.add('row-open');
+
+        const dateHtml = task.dueDate
+          ? `<span class="ov-date ${severity === 'overdue' ? 'overdue' : severity === 'today' ? 'today' : ''}">${formatDate(task.dueDate)}</span>`
+          : '—';
+        const categoryHtml = isSubtask ? '—' : `<span class="ov-edit-category" title="Click to edit">${category
+          ? `<span class="badge" style="background:${categoryColor(category)}">${escHtml(category.name)}</span>`
+          : '<span style="color:#bbb">—</span>'}</span>`;
+        const tagHtml = isSubtask ? '—' : `<span class="ov-edit-tag" title="Click to edit">${task.category && tag
+          ? `<span class="badge" style="background:${tag.color || '#4a90d9'}">${escHtml(tag.name)}</span>`
+          : task.category
+            ? `<span class="badge" style="background:#9ca3af">${escHtml(task.category)}</span>`
+            : '<span style="color:#bbb">—</span>'}</span>`;
+        const pillCls  = task.done ? 'done' : 'open';
+        const pillText = task.done ? '✓ Complete' : '● Open';
+        const hasSubtasks = taskHasSubtasks(task);
+        const isExpanded = !collapsedSubtasks.has(task.id);
+        const arrowHtml = hasSubtasks ? `<span class="ov-subtask-toggle" title="${isExpanded ? 'Collapse subtasks' : 'Expand subtasks'}">${isExpanded ? '▼' : '▶'}</span>` : '';
+        const addBtnHtml = !isSubtask ? '<button class="ov-add-subtask-btn" title="Add subtask">+</button>' : '';
+        const notepadHtml = hasSubtasks ? '<span class="ov-subtask-indicator" title="Has subtasks">📝</span>' : '';
+        const taskCellHtml = `<div class="ov-task-cell">${arrowHtml}${addBtnHtml}${notepadHtml}<div class="ov-edit-task-text ov-task-text" title="Click to edit">${escHtml(task.text)}</div></div>`;
+        const actionsHtml = '<button class="ov-edit-btn" title="Edit task">✎</button><button class="ov-remove-btn" title="Remove task">✕</button>';
+
+        const cellMap = {
+          category: categoryHtml,
+          tag: tagHtml,
+          text: taskCellHtml,
+          dueDate: dateHtml,
+          status: `<span class="status-pill ${pillCls}" title="Click to toggle">${pillText}</span>`,
+          actions: actionsHtml
+        };
+        columnConfig.forEach(col => {
+          if (col.id === 'actions') {
+            const td = document.createElement('td');
+            td.dataset.col = 'actions';
+            td.innerHTML = actionsHtml;
+            tr.appendChild(td);
+            return;
+          }
+          const td = document.createElement('td');
+          td.dataset.col = col.id;
+          td.innerHTML = cellMap[col.id] || '';
+          tr.appendChild(td);
+        });
+
+        if (!isSubtask) {
+          const cb = selectTd.querySelector('.ov-task-checkbox');
+          if (cb) {
+            cb.checked = selectedTaskIds.has(task.id);
+            cb.addEventListener('change', () => {
+              if (cb.checked) selectedTaskIds.add(task.id);
+              else selectedTaskIds.delete(task.id);
+              updateBulkBar();
+            });
+          }
+        }
+
+        tr.querySelector('.status-pill').addEventListener('click', e => {
+          const wasUnchecked = !task.done;
+          task.done = !task.done;
+          if (task.done && wasUnchecked) launchFireworks(task);
+          if (task.done && task.parentId) {
+            const parent = tasks.find(t => t.id === task.parentId);
+            const subtasks = tasks.filter(t => t.parentId === parent?.id);
+            if (parent && subtasks.length > 0 && subtasks.every(st => st.done)) {
+              parent.done = true;
+              launchFireworks(parent);
+            }
+          }
+          if (!task.done && task.parentId) {
+            const parent = tasks.find(t => t.id === task.parentId);
+            if (parent) parent.done = false;
+          }
+          save();
+          renderTasks();
+        });
+
+        const categoryCell = tr.querySelector('td[data-col="category"]');
+        if (categoryCell && !isSubtask && categoryCell.querySelector('.ov-edit-category')) {
+          categoryCell.querySelector('.ov-edit-category').addEventListener('click', () => {
+            const wrap = categoryCell.querySelector('.ov-edit-category');
+            if (!wrap || categoryCell.querySelector('.ov-inline-select')) return;
+            const sel = document.createElement('select');
+            sel.className = 'ov-inline-select';
+            sel.innerHTML = '<option value="">— No category —</option>' + courses.map(c => `<option value="${escHtml(c.id)}" ${task.courseId === c.id ? 'selected' : ''}>${escHtml(c.name)}</option>`).join('');
+            const commit = () => {
+              task.courseId = sel.value || '';
+              save();
+              renderTasks();
+            };
+            sel.addEventListener('change', commit);
+            sel.addEventListener('blur', () => setTimeout(commit, 0));
+            wrap.replaceWith(sel);
+            sel.focus();
+          });
+        }
+
+        const tagCell = tr.querySelector('td[data-col="tag"]');
+        if (tagCell && !isSubtask && tagCell.querySelector('.ov-edit-tag')) {
+          tagCell.querySelector('.ov-edit-tag').addEventListener('click', () => {
+            const wrap = tagCell.querySelector('.ov-edit-tag');
+            if (!wrap || tagCell.querySelector('.ov-inline-select')) return;
+            const sel = document.createElement('select');
+            sel.className = 'ov-inline-select';
+            sel.innerHTML = '<option value="">— No tag —</option>' + tags.map(t => `<option value="${escHtml(t.name)}" ${task.category === t.name ? 'selected' : ''}>${escHtml(t.name)}</option>`).join('');
+            const commit = () => {
+              task.category = sel.value || '';
+              save();
+              renderTasks();
+            };
+            sel.addEventListener('change', commit);
+            sel.addEventListener('blur', () => setTimeout(commit, 0));
+            wrap.replaceWith(sel);
+            sel.focus();
+          });
+        }
+
+        const textCell = tr.querySelector('td[data-col="text"]');
+        const taskTextEl = textCell?.querySelector('.ov-edit-task-text');
+        if (taskTextEl) {
+          taskTextEl.addEventListener('click', (e) => {
+            e.stopPropagation();
+            const wrap = textCell.querySelector('.ov-edit-task-text');
+            if (!wrap || textCell.querySelector('.ov-inline-text-input')) return;
+            const inp = document.createElement('input');
+            inp.type = 'text';
+            inp.className = 'ov-inline-text-input ov-task-text';
+            inp.value = task.text || '';
+            const commit = () => {
+              const val = (inp.value || '').trim();
+              if (val) task.text = val;
+              save();
+              renderTasks();
+            };
+            inp.addEventListener('keydown', (ev) => {
+              if (ev.key === 'Enter') { ev.preventDefault(); commit(); }
+              if (ev.key === 'Escape') { ev.preventDefault(); renderTasks(); }
+            });
+            inp.addEventListener('blur', () => setTimeout(commit, 0));
+            wrap.replaceWith(inp);
+            inp.focus();
+          });
+        }
+
+        const subtaskToggle = tr.querySelector('.ov-subtask-toggle');
+        if (subtaskToggle) {
+          subtaskToggle.addEventListener('click', (e) => {
+            e.stopPropagation();
+            if (collapsedSubtasks.has(task.id)) collapsedSubtasks.delete(task.id);
+            else collapsedSubtasks.add(task.id);
+            savePreferencesToStorage();
+            renderTasks();
+          });
+        }
+
+        const addBtn = tr.querySelector('.ov-add-subtask-btn');
+        if (addBtn) {
+          addBtn.addEventListener('click', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            const parentId = String(task.id || '');
+            if (!parentId) return;
+            collapsedSubtasks.delete(parentId);
+            savePreferencesToStorage();
+            document.querySelectorAll('tr.ov-add-subtask-row').forEach(r => r.remove());
+            const addTr = document.createElement('tr');
+            addTr.className = 'ov-add-subtask-row subtask-row';
+            const categoryHtml = '—';
+            const tagHtml = '—';
+            const dateHtml = task.dueDate ? `<span class="ov-date">${formatDate(task.dueDate)}</span>` : '—';
+            const taskCellHtml = '<div class="ov-task-cell"><span class="ov-subtask-indicator" style="opacity:0.4">📝</span><input type="text" class="ov-subtask-input" placeholder="Type subtask and press Enter…" enterkeyhint="done"></div>';
+            const actionsHtml = '<button class="ov-remove-btn" title="Cancel">✕</button>';
+            const cellMap = { category: categoryHtml, tag: tagHtml, text: taskCellHtml, dueDate: dateHtml, status: '—', actions: actionsHtml };
+            const addSelectTd = document.createElement('td');
+            addSelectTd.className = 'ov-select-col';
+            addTr.appendChild(addSelectTd);
+            columnConfig.forEach(col => {
+              const td = document.createElement('td');
+              if (col.id === 'text') td.classList.add('ov-task-col');
+              td.innerHTML = col.id === 'actions' ? actionsHtml : (cellMap[col.id] || '');
+              addTr.appendChild(td);
+            });
+            const input = addTr.querySelector('.ov-subtask-input');
+            const commit = () => {
+              const text = (input.value || '').trim();
+              if (text) {
+                tasks.push({ id: genId(), text, dueDate: task.dueDate || '', courseId: task.courseId || '', category: task.category || '', done: false, parentId: parentId });
+                save();
+                renderTasks();
+              } else addTr.remove();
+            };
+            const cancel = () => addTr.remove();
+            input.addEventListener('keydown', e => {
+              if (e.key === 'Enter') { e.preventDefault(); commit(); }
+              else if (e.key === 'Escape') { e.preventDefault(); cancel(); }
+            });
+            const addRowInsertedAt = Date.now();
+            input.addEventListener('blur', () => {
+              setTimeout(() => {
+                if (addTr.isConnected && document.activeElement !== input && (Date.now() - addRowInsertedAt) > 50) commit();
+              }, 30);
+            });
+            addTr.querySelector('.ov-remove-btn').addEventListener('click', (e) => { e.stopPropagation(); cancel(); });
+            let insertAfter = tr;
+            let sib = tr.nextElementSibling;
+            while (sib && sib.classList.contains('subtask-row') && !sib.classList.contains('ov-add-subtask-row')) {
+              insertAfter = sib;
+              sib = sib.nextElementSibling;
+            }
+            insertAfter.insertAdjacentElement('afterend', addTr);
+            requestAnimationFrame(() => {
+              addTr.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+              input.focus();
+            });
+          });
+        }
+
+        tr.querySelector('.ov-remove-btn').addEventListener('click', () => {
+          const parentIdToCheck = task.parentId || '';
+          tasks = tasks.filter(x => x.id !== task.id && x.parentId !== task.id);
+          if (parentIdToCheck && !tasks.some(x => (x.parentId || '') === parentIdToCheck)) {
+            collapsedSubtasks.delete(parentIdToCheck);
+            savePreferencesToStorage();
+          }
+          save();
+          renderTasks();
+        });
+
+        const editBtn = tr.querySelector('.ov-edit-btn');
+        if (editBtn) {
+          editBtn.addEventListener('click', () => {
+            if (task.parentId && collapsedSubtasks.has(task.parentId)) {
+              pendingEditTaskId = task.id;
+              collapsedSubtasks.delete(task.parentId);
+              savePreferencesToStorage();
+              renderTasks();
+              return;
+            }
+            const openEdit = document.querySelector('tr.ov-edit-row');
+            if (openEdit && openEdit !== tr) {
+              const tid = openEdit.dataset.taskId;
+              const t = tasks.find(x => x.id === tid);
+              if (t) {
+                const catSel = openEdit.querySelector('.ov-edit-cat-select');
+                const tagSel = openEdit.querySelector('.ov-edit-tag-select');
+                const textInp = openEdit.querySelector('.ov-edit-text-input');
+                const dateInp = openEdit.querySelector('.ov-edit-date-input');
+                const statusSel = openEdit.querySelector('.ov-edit-status-select');
+                if (catSel) t.courseId = catSel.value || '';
+                if (tagSel) t.category = tagSel.value || '';
+                if (textInp) t.text = (textInp.value || '').trim() || t.text;
+                if (dateInp) t.dueDate = dateInp.value || '';
+                if (statusSel) {
+                  const wasUnchecked = !t.done;
+                  t.done = statusSel.value === 'done';
+                  if (t.done && wasUnchecked) launchFireworks(t);
+                  if (t.done && t.parentId) {
+                    const parent = tasks.find(p => p.id === t.parentId);
+                    const subtasks = tasks.filter(p => p.parentId === parent?.id);
+                    if (parent && subtasks.length > 0 && subtasks.every(st => st.done)) {
+                      parent.done = true;
+                      launchFireworks(parent);
+                    }
+                  }
+                  if (!t.done && t.parentId) {
+                    const parent = tasks.find(p => p.id === t.parentId);
+                    if (parent) parent.done = false;
+                  }
+                }
+                save();
+              }
+              openEdit.classList.remove('ov-edit-row');
+              renderTasks();
+              return;
+            }
+            if (tr.classList.contains('ov-edit-row')) return;
+            tr.classList.add('ov-edit-row');
+            tr.dataset.taskId = task.id;
+            const catSel = tr.querySelector('td[data-col="category"]');
+            const tagSel = tr.querySelector('td[data-col="tag"]');
+            const textTd = tr.querySelector('td[data-col="text"]');
+            const dateTd = tr.querySelector('td[data-col="dueDate"]');
+            const statusTd = tr.querySelector('td[data-col="status"]');
+            const actionsTd = tr.querySelector('td[data-col="actions"]');
+            if (catSel) {
+              catSel.innerHTML = `<select class="ov-edit-select ov-edit-cat-select"><option value="">— No category —</option>${courses.map(c => `<option value="${escHtml(c.id)}" ${task.courseId === c.id ? 'selected' : ''}>${escHtml(c.name)}</option>`).join('')}</select>`;
+            }
+            if (tagSel) {
+              tagSel.innerHTML = `<select class="ov-edit-select ov-edit-tag-select"><option value="">— No tag —</option>${tags.map(t => `<option value="${escHtml(t.name)}" ${task.category === t.name ? 'selected' : ''}>${escHtml(t.name)}</option>`).join('')}</select>`;
+            }
+            if (textTd) {
+              const arrow = hasSubtasks ? `<span class="ov-subtask-toggle" style="opacity:0.5; cursor:default">${isExpanded ? '▼' : '▶'}</span>` : '';
+              textTd.innerHTML = `<div class="ov-task-cell">${arrow}<input type="text" class="ov-edit-input ov-edit-text-input" value="${escHtml(task.text)}" style="flex:1; min-width:0"></div>`;
+            }
+            if (dateTd) {
+              dateTd.innerHTML = `<input type="date" class="ov-edit-input ov-edit-date-input" value="${task.dueDate || ''}">`;
+            }
+            if (statusTd) {
+              statusTd.innerHTML = `<select class="ov-edit-select ov-edit-status-select"><option value="open" ${!task.done ? 'selected' : ''}>● Open</option><option value="done" ${task.done ? 'selected' : ''}>✓ Complete</option></select>`;
+            }
+            const doSave = () => {
+              const t = tasks.find(x => x.id === task.id);
+              if (t) {
+                const catSel = tr.querySelector('.ov-edit-cat-select');
+                const tagSel = tr.querySelector('.ov-edit-tag-select');
+                const inp = tr.querySelector('.ov-edit-text-input');
+                const dateInp = tr.querySelector('.ov-edit-date-input');
+                const statusSel = tr.querySelector('.ov-edit-status-select');
+                if (catSel) t.courseId = catSel.value || '';
+                if (tagSel) t.category = tagSel.value || '';
+                if (inp) t.text = (inp.value || '').trim() || t.text;
+                if (dateInp) t.dueDate = dateInp.value || '';
+                if (statusSel) {
+                  const wasUnchecked = !t.done;
+                  t.done = statusSel.value === 'done';
+                  if (t.done && wasUnchecked) launchFireworks(t);
+                  if (t.done && t.parentId) {
+                    const parent = tasks.find(p => p.id === t.parentId);
+                    const subtasks = tasks.filter(p => p.parentId === parent?.id);
+                    if (parent && subtasks.length > 0 && subtasks.every(st => st.done)) {
+                      parent.done = true;
+                      launchFireworks(parent);
+                    }
+                  }
+                  if (!t.done && t.parentId) {
+                    const parent = tasks.find(p => p.id === t.parentId);
+                    if (parent) parent.done = false;
+                  }
+                }
+                save();
+              }
+              tr.classList.remove('ov-edit-row');
+              renderTasks();
+            };
+            if (actionsTd) {
+              actionsTd.innerHTML = `<button class="ov-save-btn" title="Save">✓</button><button class="ov-cancel-btn" title="Cancel">Cancel</button>`;
+              actionsTd.querySelector('.ov-save-btn').addEventListener('click', doSave);
+              actionsTd.querySelector('.ov-cancel-btn').addEventListener('click', () => {
+                tr.classList.remove('ov-edit-row');
+                renderTasks();
+              });
+            }
+            tr.querySelector('.ov-edit-text-input')?.focus();
+            tr.querySelectorAll('.ov-edit-input, .ov-edit-select').forEach(el => {
+              el.addEventListener('keydown', e => {
+                if (e.key === 'Enter') { e.preventDefault(); doSave(); }
+                if (e.key === 'Escape') { e.preventDefault(); tr.classList.remove('ov-edit-row'); renderTasks(); }
+              });
+            });
+          });
+        }
+
+
+        tbody.appendChild(tr);
+
+        const subtasks = hasSubtasks && isExpanded
+          ? tasks.filter(t => t.parentId === task.id && matchesFilter(t))
+          : [];
+        subtasks.forEach(st => renderTaskRow(st, true));
+      };
+
+      sorted.forEach(t => renderTaskRow(t, false));
+
+      if (pendingEditTaskId) {
+        const pid = pendingEditTaskId;
+        pendingEditTaskId = null;
+        const row = tbody.querySelector(`tr[data-task-id="${pid}"]`);
+        if (row) {
+          const eb = row.querySelector('.ov-edit-btn');
+          if (eb) eb.click();
+        }
+      }
+
+      updateBulkBar();
+      const selectAll = document.getElementById('ovSelectAll');
+      if (selectAll) {
+        selectAll.checked = visible.length > 0 && visible.every(t => selectedTaskIds.has(t.id));
+        selectAll.onclick = null;
+        selectAll.addEventListener('click', () => {
+          const checked = selectAll.checked;
+          visible.forEach(t => {
+            if (checked) selectedTaskIds.add(t.id);
+            else selectedTaskIds.delete(t.id);
+          });
+          tbody.querySelectorAll('.ov-task-checkbox').forEach(cb => { cb.checked = checked; });
+          updateBulkBar();
+        });
+      }
+    }
+
+    function updateBulkBar() {
+      const bar = document.getElementById('ovBulkBar');
+      const countEl = document.getElementById('ovBulkCount');
+      const undoBtn = document.getElementById('ovBulkUndo');
+      if (!bar || !countEl) return;
+      const n = selectedTaskIds.size;
+      const hasUndo = !!bulkUndoSnapshot;
+      bar.style.display = (n > 0 || hasUndo) ? 'flex' : 'none';
+      countEl.textContent = n > 0 ? n + ' selected' : (hasUndo ? 'Undo last action' : '0 selected');
+      if (undoBtn) undoBtn.style.display = hasUndo ? '' : 'none';
+      if (n > 0) {
+        const catMenu = document.getElementById('ovBulkCategoryMenu');
+        const tagMenu = document.getElementById('ovBulkTagMenu');
+        const statusMenu = document.getElementById('ovBulkStatusMenu');
+        if (catMenu) {
+          catMenu.innerHTML = '<div class="ov-bulk-dropdown-option" data-value=""><span style="color:#888">— No category —</span></div>' + courses.map(c => `<div class="ov-bulk-dropdown-option" data-value="${escHtml(c.id)}"><span class="badge" style="background:${categoryColor(c)}">${escHtml(c.name)}</span></div>`).join('');
+        }
+        if (tagMenu) {
+          tagMenu.innerHTML = '<div class="ov-bulk-dropdown-option" data-value=""><span style="color:#888">— No tag —</span></div>' + tags.map(t => `<div class="ov-bulk-dropdown-option" data-value="${escHtml(t.name)}"><span class="badge" style="background:${t.color || '#4a90d9'}">${escHtml(t.name)}</span></div>`).join('');
+        }
+        if (statusMenu) {
+          statusMenu.innerHTML = '<div class="ov-bulk-dropdown-option" data-value="open"><span class="status-pill open">● Open</span></div><div class="ov-bulk-dropdown-option" data-value="done"><span class="status-pill done">✓ Complete</span></div>';
+        }
+      }
+    }
+
+    /* ═══════════════════════════════════════════
+       Collapsible panels
+    ═══════════════════════════════════════════ */
+    let categoriesOpen = true;
+    let tagsOpen = true;
+    let importAiOpen = false;
+    let ovAddTaskOpen = false; // collapsed by default for new users
+
+    function toggleCategories() {
+      categoriesOpen = !categoriesOpen;
+      const body   = document.getElementById('categoriesBody');
+      const toggle = document.getElementById('categoriesToggle');
+      if (categoriesOpen) {
+        body.style.maxHeight = body.scrollHeight + 'px';
+        body.addEventListener('transitionend', () => {
+          if (categoriesOpen) body.style.maxHeight = 'none';
+        }, { once: true });
+      } else {
+        body.style.maxHeight = body.scrollHeight + 'px';
+        requestAnimationFrame(() => { body.style.maxHeight = '0'; });
+      }
+      toggle.classList.toggle('collapsed', !categoriesOpen);
+    }
+
+    function toggleTags() {
+      tagsOpen = !tagsOpen;
+      const body   = document.getElementById('tagsBody');
+      const toggle = document.getElementById('tagsToggle');
+      if (tagsOpen) {
+        body.style.maxHeight = body.scrollHeight + 'px';
+        body.addEventListener('transitionend', () => {
+          if (tagsOpen) body.style.maxHeight = 'none';
+        }, { once: true });
+      } else {
+        body.style.maxHeight = body.scrollHeight + 'px';
+        requestAnimationFrame(() => { body.style.maxHeight = '0'; });
+      }
+      toggle.classList.toggle('collapsed', !tagsOpen);
+    }
+
+    function toggleImportAi() {
+      importAiOpen = !importAiOpen;
+      const body   = document.getElementById('importAiBody');
+      const toggle = document.getElementById('importAiToggle');
+      if (importAiOpen) {
+        body.style.maxHeight = body.scrollHeight + 'px';
+        body.addEventListener('transitionend', () => {
+          if (importAiOpen) body.style.maxHeight = 'none';
+        }, { once: true });
+      } else {
+        body.style.maxHeight = body.scrollHeight + 'px';
+        requestAnimationFrame(() => { body.style.maxHeight = '0'; });
+      }
+      toggle.classList.toggle('collapsed', !importAiOpen);
+    }
+
+    function toggleOvAddTask() {
+      ovAddTaskOpen = !ovAddTaskOpen;
+      const body   = document.getElementById('ovAddTaskBody');
+      const symbol = document.getElementById('ovAddTaskSymbol');
+      const toggle = document.getElementById('ovAddTaskToggle');
+      if (ovAddTaskOpen) {
+        body.style.maxHeight = body.scrollHeight + 'px';
+        body.addEventListener('transitionend', () => {
+          if (ovAddTaskOpen) body.style.maxHeight = 'none';
+        }, { once: true });
+        symbol.textContent = '−';
+        symbol.title = 'Click to collapse';
+        toggle?.classList.remove('collapsed');
+      } else {
+        body.style.maxHeight = body.scrollHeight + 'px';
+        requestAnimationFrame(() => { body.style.maxHeight = '0'; });
+        symbol.textContent = '+';
+        symbol.title = 'Click to expand';
+        toggle?.classList.add('collapsed');
+      }
+      savePreferencesToStorage();
+    }
+
+    /* ═══════════════════════════════════════════
+       Column header: sort, drag, resize
+    ═══════════════════════════════════════════ */
+    document.getElementById('overviewTable').addEventListener('click', e => {
+      const th = e.target.closest('thead th[data-col]');
+      if (!th || e.target.closest('.col-resizer')) return;
+      const col = th.dataset.col;
+      const ovSort = document.getElementById('ovSort');
+      const ovDir = document.getElementById('ovDir');
+      if (ovSort.value === col) {
+        ovDir.value = ovDir.value === 'asc' ? 'desc' : 'asc';
+      } else {
+        ovSort.value = col;
+        ovDir.value = 'asc';
+      }
+      renderOverview();
+    });
+
+    document.getElementById('overviewTable').addEventListener('mousedown', e => {
+      const resizer = e.target.closest('.col-resizer');
+      if (resizer) {
+        e.preventDefault();
+        const idx = parseInt(resizer.dataset.colIdx, 10);
+        const th = resizer.closest('th');
+        let startX = e.pageX, startW = th.offsetWidth;
+        const onMove = ev => {
+          const dw = ev.pageX - startX;
+          const newW = Math.max(columnConfig[idx].minWidth || 40, startW + dw);
+          columnConfig[idx].width = newW;
+          th.style.width = newW + 'px';
+        };
+        const onUp = () => {
+          document.removeEventListener('mousemove', onMove);
+          document.removeEventListener('mouseup', onUp);
+          saveColumnConfig();
+        };
+        document.addEventListener('mousemove', onMove);
+        document.addEventListener('mouseup', onUp);
+      }
+    });
+
+    let draggedColIdx = null;
+    document.getElementById('overviewTable').addEventListener('dragstart', e => {
+      const th = e.target.closest('thead th[data-col]');
+      if (!th || th.dataset.col === 'actions') return;
+      draggedColIdx = columnConfig.findIndex(c => c.id === th.dataset.col);
+      if (draggedColIdx >= 0) th.classList.add('dragging');
+    });
+    document.getElementById('overviewTable').addEventListener('dragend', e => {
+      e.target.closest('thead th')?.classList.remove('dragging');
+      document.querySelectorAll('thead th').forEach(h => h.classList.remove('drag-over'));
+      draggedColIdx = null;
+    });
+    document.getElementById('overviewTable').addEventListener('dragover', e => {
+      e.preventDefault();
+      const th = e.target.closest('thead th[data-col]');
+      if (!th || draggedColIdx == null) return;
+      const idx = columnConfig.findIndex(c => c.id === th.dataset.col);
+      if (idx >= 0 && idx !== draggedColIdx) {
+        document.querySelectorAll('thead th').forEach(h => h.classList.remove('drag-over'));
+        th.classList.add('drag-over');
+      }
+    });
+    document.getElementById('overviewTable').addEventListener('drop', e => {
+      e.preventDefault();
+      const th = e.target.closest('thead th[data-col]');
+      if (!th || draggedColIdx == null) return;
+      const dropIdx = columnConfig.findIndex(c => c.id === th.dataset.col);
+      if (dropIdx >= 0 && dropIdx !== draggedColIdx) {
+        const [moved] = columnConfig.splice(draggedColIdx, 1);
+        columnConfig.splice(dropIdx, 0, moved);
+        saveColumnConfig();
+        renderOverview();
+      }
+      document.querySelectorAll('thead th').forEach(h => h.classList.remove('drag-over'));
+    });
+
+    /* ═══════════════════════════════════════════
+       Pooh Bear celebration
+    ═══════════════════════════════════════════ */
+    const poohOverlay   = document.getElementById('poohOverlay');
+    const poohContainer = document.getElementById('poohContainer');
+    const poohFloaties  = document.getElementById('poohFloaties');
+    let   poohTimer     = null;
+
+    // Pooh Bear (default), Puppy (exercise/dog walk), Cards (playing cards)
+    const POOH_GIF       = 'https://media.giphy.com/media/9Y6n9TR7U07ew/giphy.gif';  // dancing Winnie the Pooh
+    const PUPPY_GIF     = 'https://media.giphy.com/media/PkVyUSiKPShclV8JHx/giphy.gif';  // Pugs walking (exercise/dog walk)
+    const CARDS_GIF     = 'https://media.giphy.com/media/ZU0uJyigkDnNSYTbEa/giphy.gif';
+    const CELEBRATION_GIFS_CCJ = [
+      { url: POOH_GIF,   text: '🍯 Task Complete! 🍯', sub: 'Oh bother… you did it! ✨' }
+    ];
+    const PUPPY_CELEBRATION = { url: PUPPY_GIF, text: 'Puppy says Thank You!!', sub: '🐕' };
+    const CARDS_CELEBRATION = { url: CARDS_GIF, text: '🃏 Task Complete! 🃏', sub: 'Winning hand! 🎊' };
+    // Fallback GIFs for other users (if GIF_ENABLED_EMAIL is set for them)
+    const CELEBRATION_GIFS = [
+      { url: POOH_GIF,   text: '🎉 Task Complete! 🎉', sub: 'Pooh Bear says great job! 🎂🍯' },
+      { url: PUPPY_GIF,  text: '🎉 Task Complete! 🎉', sub: 'Good dog! You did it! 🐕✨' },
+      { url: CARDS_GIF,  text: '🎉 Task Complete! 🎉', sub: 'Winning hand! 🃏🎊' }
+    ];
+
+    function pickCelebrationGif(task) {
+      const text = (task?.text || '').toLowerCase();
+      const isDogWalk = /\b(exercise|walk|walking|dog|puppy|sadie)\b/.test(text);
+      const isCards   = /\b(card|cards|playing cards|poker|bridge|solitaire|cribbage|euchre|hearts|spades|rummy)\b/.test(text);
+      if (isDogWalk) return PUPPY_CELEBRATION;
+      if (isCards)   return CARDS_CELEBRATION;
+      return CELEBRATION_GIFS_CCJ[0];
+    }
+
+    const FLOATIE_ICONS = ['🎉','🎈','🎂','🍯','🎊','⭐','🎈','🎉','🎂','🎊'];
+
+    function spawnFloaties() {
+      poohFloaties.innerHTML = '';
+      const picks = [...FLOATIE_ICONS].sort(() => Math.random() - 0.5).slice(0, 9);
+      picks.forEach((icon, i) => {
+        const el = document.createElement('span');
+        el.className = 'pooh-floatie';
+        el.textContent = icon;
+        el.style.left              = (4 + Math.random() * 92) + '%';
+        el.style.bottom            = (-10 + Math.random() * 15) + '%';
+        el.style.fontSize          = (1.3 + Math.random() * 1.6) + 'rem';
+        el.style.animationDelay    = (i * 0.18 + Math.random() * 0.2) + 's';
+        el.style.animationDuration = (2.4 + Math.random() * 1.4) + 's';
+        poohFloaties.appendChild(el);
+      });
+    }
+
+    function launchFireworks(task) {
+      const canShow = USE_API && GIF_ENABLED_EMAIL && currentUser?.email &&
+        currentUser.email.toLowerCase() === GIF_ENABLED_EMAIL.toLowerCase();
+      if (!canShow) return;
+
+      if (poohTimer) { clearTimeout(poohTimer); poohTimer = null; }
+
+      const isCcj = currentUser?.email?.toLowerCase() === 'ccj2006@outlook.com';
+      const pick = isCcj ? pickCelebrationGif(task) : CELEBRATION_GIFS[Math.floor(Math.random() * CELEBRATION_GIFS.length)];
+      document.getElementById('poohGif').src             = pick.url;
+      document.getElementById('poohText').textContent    = pick.text;
+      document.getElementById('poohSub').textContent     = pick.sub;
+
+      // Spawn floating icons
+      spawnFloaties();
+
+      // Reset bounce animation
+      poohOverlay.classList.remove('pooh-visible', 'pooh-hiding');
+      poohContainer.style.animation = 'none';
+      void poohContainer.offsetWidth;
+      poohContainer.style.animation = '';
+
+      poohOverlay.classList.add('pooh-visible');
+      poohOverlay.style.pointerEvents = 'auto';
+      poohOverlay.onclick = dismissPooh;
+
+      poohTimer = setTimeout(dismissPooh, 4000);
+    }
+
+    function dismissPooh() {
+      if (poohTimer) { clearTimeout(poohTimer); poohTimer = null; }
+      poohOverlay.onclick = null;
+      poohOverlay.style.pointerEvents = 'none';
+      poohOverlay.classList.remove('pooh-visible');
+      poohOverlay.classList.add('pooh-hiding');
+      setTimeout(() => poohOverlay.classList.remove('pooh-hiding'), 650);
+    }
+
+    /* ═══════════════════════════════════════════
+       XSS helper
+    ═══════════════════════════════════════════ */
+    function escHtml(str) {
+      return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+    }
+
+    /* ═══════════════════════════════════════════
+       Event wiring
+    ═══════════════════════════════════════════ */
+    document.getElementById('addCategoryBtn').addEventListener('click', addCategory);
+    document.getElementById('categoryName').addEventListener('keydown', e => { if (e.key === 'Enter') addCategory(); });
+    document.getElementById('categoryDesc').addEventListener('keydown', e => {
+      if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); addCategory(); }
+    });
+    document.getElementById('addTagBtn').addEventListener('click', addTag);
+    document.getElementById('tagName').addEventListener('keydown', e => { if (e.key === 'Enter') addTag(); });
+
+    document.getElementById('addTaskBtn').addEventListener('click', addTask);
+    document.getElementById('newTask').addEventListener('keydown', e => { if (e.key === 'Enter') addTask(); });
+
+
+    document.getElementById('categoriesToggle').addEventListener('click', toggleCategories);
+    document.getElementById('tagsToggle').addEventListener('click', toggleTags);
+    document.getElementById('importAiToggle').addEventListener('click', toggleImportAi);
+    document.getElementById('ovAddTaskToggle').addEventListener('click', toggleOvAddTask);
+
+    document.getElementById('resetBtn').addEventListener('click', () => {
+      if (!confirm('Are you sure? This will clear all tasks and cannot be undone.')) return;
+      tasks = [];
+      save();
+      renderTasks();
+    });
+
+    document.getElementById('configBtn').addEventListener('click', () => {
+      document.getElementById('configPanelOverlay').classList.remove('hidden');
+    });
+    document.getElementById('configPanelCloseBtn').addEventListener('click', () => {
+      document.getElementById('configPanelOverlay').classList.add('hidden');
+    });
+    document.getElementById('configPanelOverlay').addEventListener('click', (e) => {
+      if (e.target.id === 'configPanelOverlay') document.getElementById('configPanelOverlay').classList.add('hidden');
+    });
+
+    function showImportProgress(label = 'Importing…') {
+      const el = document.getElementById('importProgress');
+      const textEl = document.getElementById('importProgressText');
+      if (el && textEl) {
+        textEl.textContent = label;
+        el.classList.add('importing');
+        el.setAttribute('aria-hidden', 'false');
+      }
+    }
+    function hideImportProgress() {
+      const el = document.getElementById('importProgress');
+      if (el) {
+        el.classList.remove('importing');
+        el.setAttribute('aria-hidden', 'true');
+      }
+    }
+
+    document.getElementById('csvImportBtn').addEventListener('click', async () => {
+      if (typeof window.electronAPI !== 'undefined' && window.electronAPI.showImportDialog) {
+        const chosen = await window.electronAPI.showImportDialog();
+        if (!chosen) return;
+        handleImport(chosen.ext, chosen.path, chosen.name);
+      } else {
+        document.getElementById('csvImportInput').click();
+      }
+    });
+
+    document.getElementById('pdfImportBtn').addEventListener('click', async () => {
+      if (typeof window.electronAPI !== 'undefined' && window.electronAPI.showImportPdfDialog && window.electronAPI.runPdfToCsv) {
+        const pdfPath = await window.electronAPI.showImportPdfDialog();
+        if (!pdfPath) return;
+        showImportProgress('Importing PDF…');
+        try {
+          const csvText = await window.electronAPI.runPdfToCsv(pdfPath);
+          const importedTasks = await parseImportSource('csv', { text: () => Promise.resolve(csvText) }, 'imported.csv');
+          await applyImportedTasks(importedTasks);
+          console.log('[PDF import] source=Electron tasks=' + importedTasks.length);
+          alert(`Imported ${importedTasks.length} task(s) from PDF.`);
+        } catch (err) {
+          alert('PDF import failed: ' + (err.message || 'Unknown error'));
+        } finally {
+          hideImportProgress();
+        }
+      } else {
+        if (!USE_API) {
+          alert('PDF import requires the web app. Open the app from your deployed URL (e.g. https://your-app.onrender.com) to use this feature.');
+          return;
+        }
+        if (!getToken()) {
+          alert('Please log in to import PDF.');
+          return;
+        }
+        document.getElementById('pdfImportInput').click();
+      }
+    });
+
+    document.getElementById('pdfImportInput').addEventListener('change', async (e) => {
+      const file = e.target.files?.[0];
+      e.target.value = '';
+      if (!file) return;
+      showImportProgress('Importing PDF…');
+      try {
+        const { tasks: importedTasks, parser } = await importPdfViaApi(file);
+        await applyImportedTasks(importedTasks);
+        console.log('[PDF import] source=API filename=' + (file.name || '') + ' parser=' + parser + ' tasks=' + importedTasks.length);
+        const parserHint = parser === 'anthropic' ? ' (AI)' : '';
+        alert(`Imported ${importedTasks.length} task(s) from PDF${parserHint}.`);
+      } catch (err) {
+        alert('PDF import failed: ' + (err.message || 'Unknown error'));
+      } finally {
+        hideImportProgress();
+      }
+    });
+
+    document.getElementById('csvImportInput').addEventListener('change', async (e) => {
+      const file = e.target.files?.[0];
+      e.target.value = '';
+      if (!file) return;
+      const ext = (file.name.split('.').pop() || '').toLowerCase();
+      handleImport(ext, file, file.name);
+    });
+
+    async function handleImport(ext, fileOrPath, fileName) {
+      showImportProgress('Importing CSV…');
+      try {
+        const importedTasks = await parseImportSource(ext, fileOrPath, fileName);
+        await applyImportedTasks(importedTasks);
+        console.log('[CSV import] filename=' + fileName + ' tasks=' + importedTasks.length);
+        alert(`Imported ${importedTasks.length} task(s).`);
+      } catch (err) {
+        alert('Import failed: ' + (err.message || 'Unknown error'));
+      } finally {
+        hideImportProgress();
+      }
+    }
+
+    async function importPdfViaApi(file) {
+      if (!USE_API || !getToken()) throw new Error('Please log in to import PDF.');
+      const form = new FormData();
+      form.append('file', file);
+      const headers = { 'Authorization': 'Bearer ' + getToken() };
+      const res = await fetch(API_BASE + '/api/import/pdf', { method: 'POST', headers, body: form });
+      if (res.status === 401) { clearToken(); throw new Error('Please log in to import PDF.'); }
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.error || 'PDF import failed');
+      }
+      const data = await res.json();
+      let tasks = data.tasks || [];
+      if (!tasks.length) throw new Error('No tasks found in PDF.');
+      tasks = ensureCoursesForImportedTasks(tasks);
+      return { tasks, parser: data.parser || 'unknown' };
+    }
+
+    function ensureCoursesForImportedTasks(importedTasks) {
+      return importedTasks.map(t => {
+        const cat = (t.category || '').trim();
+        if (!cat || t.courseId) return t;
+        let c = courses.find(x => x.name.toLowerCase() === cat.toLowerCase());
+        if (!c) {
+          c = { id: genId(), name: cat, description: '', color: DEFAULT_CATEGORY_COLOR };
+          courses.push(c);
+        }
+        const tagVal = (t.tag !== undefined ? t.tag : t.category);
+        return { ...t, courseId: c.id, category: String(tagVal || '').trim() };
+      });
+    }
+
+    async function parseImportSource(sourceType, data, fileName) {
+      if (sourceType !== 'csv') throw new Error('Only CSV files are supported. Please select a .csv file.');
+      let text;
+      if (typeof data === 'string' && window.electronAPI?.readFileAsText) text = await window.electronAPI.readFileAsText(data);
+      else if (data?.text) text = await data.text();
+      else text = '';
+      if (!text) throw new Error('Could not read file.');
+      const csvText = csvToStandardFormat(text);
+      if (!csvText.trim() || csvText === 'Category,Tag,Task,Due Date,Status\n') throw new Error('No tasks found to import.');
+      return parseCSVToTasks(csvText);
+    }
+
+    async function applyImportedTasks(importedTasks) {
+      if (!importedTasks?.length) throw new Error('No tasks found to import.');
+      tasks = tasks.concat(importedTasks);
+      // Sync courses and tags (including any newly imported) to user config
+      if (USE_API && getToken()) {
+        const r = await apiFetch('/api/sync', { method: 'POST', body: JSON.stringify({ courses, tags, tasks: tasks.map(t => ({ id: t.id, text: t.text, dueDate: t.dueDate || '', courseId: t.courseId || '', category: t.category || '', done: !!t.done, parentId: t.parentId || '' })), merge: true }) });
+        if (!r.ok) throw new Error('Sync failed');
+        await loadDataFromApi();
+      } else if (USE_API && !getToken()) {
+        localStorage.setItem('td_courses', JSON.stringify(courses));
+        localStorage.setItem('td_tasks', JSON.stringify(tasks));
+        localStorage.setItem('td_tags', JSON.stringify(tags));
+      } else {
+        save();
+      }
+      renderCategories();
+      renderTags();
+      resetOverviewFiltersToAll();
+      renderOverview();
+      // Ensure Add Task panel is expanded and ready for more tasks after import
+      ovAddTaskOpen = true;
+      const addBody = document.getElementById('ovAddTaskBody');
+      const addSymbol = document.getElementById('ovAddTaskSymbol');
+      const addToggle = document.getElementById('ovAddTaskToggle');
+      if (addBody) { addBody.style.maxHeight = 'none'; }
+      if (addSymbol) { addSymbol.textContent = '−'; addSymbol.title = 'Click to collapse'; }
+      if (addToggle) addToggle.classList.remove('collapsed');
+      savePreferencesToStorage();
+      requestAnimationFrame(() => {
+        const newTaskEl = document.getElementById('newTask');
+        if (newTaskEl) newTaskEl.focus();
+      });
+    }
+    function normalizeImportDate(val, yearHint) {
+      let s = (val || '').trim();
+      if (!s) return '';
+      s = s.replace(/\./g, '/');
+      const year = yearHint || new Date().getFullYear();
+      if (/^\d{4}-\d{1,2}-\d{1,2}$/.test(s)) {
+        const [y, m, d] = s.split('-').map(n => parseInt(n, 10));
+        if (m >= 1 && m <= 12 && d >= 1 && d <= 31) {
+          return `${y}-${String(m).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+        }
+      }
+      if (/^\d{1,2}\/\d{1,2}\/\d{2}$/.test(s)) {
+        const parts = s.split('/');
+        const y = parseInt(parts[2], 10);
+        const yr = y < 50 ? 2000 + y : 1900 + y;
+        const m = parseInt(parts[0], 10), d = parseInt(parts[1], 10);
+        if (m >= 1 && m <= 12 && d >= 1 && d <= 31) {
+          return `${yr}-${String(m).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+        }
+      }
+      if (/^\d{1,2}\/\d{1,2}\/\d{4}$/.test(s)) {
+        const parts = s.split('/');
+        const m = parseInt(parts[0], 10), d = parseInt(parts[1], 10), y = parseInt(parts[2], 10);
+        if (m >= 1 && m <= 12 && d >= 1 && d <= 31) {
+          return `${y}-${String(m).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+        }
+      }
+      const weekdayMonthDay = /^(?:Mon|Tue|Wed|Thu|Fri|Sat|Sun)[a-z]*\.?,?\s*(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[a-z]*\.?\s+\d{1,2}(?:,?\s+\d{4})?$/i;
+      if (weekdayMonthDay.test(s)) {
+        const parsed = s.replace(/,/g, '') + (s.match(/\d{4}/) ? '' : ' ' + year);
+        const d = new Date(parsed);
+        if (!isNaN(d.getTime())) {
+          const y = d.getFullYear(), mo = d.getMonth() + 1, day = d.getDate();
+          return `${y}-${String(mo).padStart(2,'0')}-${String(day).padStart(2,'0')}`;
+        }
+      }
+      const monthDay = /^(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[a-z]*\.?\s+\d{1,2}(?:,?\s+\d{4})?$/i;
+      if (monthDay.test(s)) {
+        const parsed = s.replace(/,/g, '') + (s.match(/\d{4}/) ? '' : ' ' + year);
+        const d = new Date(parsed);
+        if (!isNaN(d.getTime())) {
+          const y = d.getFullYear(), mo = d.getMonth() + 1, day = d.getDate();
+          return `${y}-${String(mo).padStart(2,'0')}-${String(day).padStart(2,'0')}`;
+        }
+      }
+      const d = new Date(s);
+      if (!isNaN(d.getTime())) {
+        const y = d.getFullYear(), mo = d.getMonth() + 1, day = d.getDate();
+        return `${y}-${String(mo).padStart(2,'0')}-${String(day).padStart(2,'0')}`;
+      }
+      return '';
+    }
+    function parseCSVLine(line) {
+      const out = [];
+      let cur = '', inQ = false;
+      for (let i = 0; i < line.length; i++) {
+        const c = line[i];
+        if (c === '"') {
+          inQ = !inQ;
+        } else if ((c === ',' && !inQ) || c === '\t') {
+          out.push(cur);
+          cur = '';
+        } else {
+          cur += c;
+        }
+      }
+      out.push(cur);
+      return out.map(s => s.replace(/^"|"$/g, '').trim());
+    }
+
+    function csvToStandardFormat(csvText) {
+      const lines = (csvText || '').split(/\r?\n/).filter(l => l.trim());
+      const norm = s => (s || '').toLowerCase().replace(/[\s_-]/g, '');
+      let tagCol = -1, taskCol = -1, dateCol = -1;
+      let startIdx = 0;
+      if (lines.length > 0) {
+        const firstRow = parseCSVLine(lines[0]);
+        const firstNorm = firstRow.map(c => norm(c));
+        tagCol = firstNorm.findIndex(c => c.includes('tag') || c.includes('course'));
+        taskCol = firstNorm.findIndex(c => c.includes('task') || c.includes('assignment') || c.includes('description'));
+        dateCol = firstNorm.findIndex(c => c.includes('date') || c.includes('due'));
+        const hasHeaders = tagCol >= 0 || taskCol >= 0 || dateCol >= 0 ||
+          firstNorm.some(c => ['category','tag','task','duedate','status'].some(k => c === k || c.includes(k)));
+        if (hasHeaders) startIdx = 1;
+        if (taskCol < 0 && !hasHeaders && firstRow.length <= 2) {
+          taskCol = 0;
+          dateCol = firstRow.length >= 2 ? 1 : -1;
+        } else if (taskCol < 0) taskCol = 0;
+      }
+      const rows = [];
+      const escaped = (s) => (s || '').includes(',') ? '"' + (s || '').replace(/"/g, '""') + '"' : (s || '');
+      for (let i = startIdx; i < lines.length; i++) {
+        const row = parseCSVLine(lines[i]);
+        const getCol = idx => (idx >= 0 && idx < row.length ? row[idx] : '') || '';
+        const tag = (getCol(tagCol) || '').trim();
+        let taskText = (getCol(taskCol) || '').trim();
+        if (!taskText && row.length >= 1) taskText = (getCol(0) || '').trim();
+        const dueDateIso = normalizeImportDate(getCol(dateCol));
+        const dueDate = formatDateAsMDYYYY(dueDateIso) || dueDateIso || '';
+        if (!taskText || taskText.length < 2) continue;
+        rows.push(['School', tag || 'General', taskText, dueDate, 'Open'].map(escaped).join(','));
+      }
+      return 'Category,Tag,Task,Due Date,Status\n' + rows.join('\n');
+    }
+
+    function parseTxtFallback(text) {
+      const items = [];
+      const dateRe = /\b(\d{1,2}[\/\-\.]\d{1,2}[\/\-\.]\d{2,4}|\d{4}[\/\-\.]\d{1,2}[\/\-\.]\d{1,2}|(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[a-z]*\.?\s+\d{1,2}(?:,?\s+\d{4})?|(?:Mon|Tue|Wed|Thu|Fri|Sat|Sun)[a-z]*\.?,?\s*(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[a-z]*\.?\s+\d{1,2}(?:,?\s+\d{4})?)\b/gi;
+      const yearHint = parseInt((text.match(/\b(20\d{2})\b/) || [])[1], 10) || new Date().getFullYear();
+      let lines = text.split(/\r?\n/).map(l => l.trim()).filter(l => l.length > 0);
+      if (lines.length < 2 && text.length > 100) lines = text.split(/\n+|\t/).map(l => l.trim()).filter(l => l.length > 0);
+      let currentDate = '';
+      for (const line of lines) {
+        const dateM = line.match(dateRe);
+        if (dateM) currentDate = normalizeImportDate(dateM[0], yearHint);
+        let taskText = line.replace(dateRe, '').replace(/\s+/g, ' ').trim();
+        if (taskText && taskText.length > 2 && !/^https?:\/\//i.test(taskText)) {
+          items.push({ tag: '', task: taskText, dueDate: currentDate });
+        }
+      }
+      return items;
+    }
+
+    function formatDateAsMDYYYY(isoDate) {
+      if (!isoDate || !/^\d{4}-\d{2}-\d{2}$/.test(isoDate)) return '';
+      const [y, m, d] = isoDate.split('-').map(n => parseInt(n, 10));
+      return `${m}/${d}/${y}`;
+    }
+
+    function parseCSVToTasks(csvText) {
+      let raw = (csvText || '').trim();
+      const codeBlockMatch = raw.match(/```(?:csv)?\s*([\s\S]*?)```/);
+      if (codeBlockMatch) raw = codeBlockMatch[1].trim();
+      const lines = raw.split(/\r?\n/).filter(l => l.trim());
+      const courseMap = {};
+      const importedTasks = [];
+      const COL_KEYS = ['category', 'tag', 'task', 'duedate', 'status'];
+      const norm = s => (s || '').toLowerCase().replace(/[\s_-]/g, '');
+      let colMap = [0, 1, 2, 3, 4];
+      let startIdx = 0;
+      if (lines.length > 0) {
+        const firstRow = parseCSVLine(lines[0]);
+        const firstNorm = firstRow.map(c => norm(c));
+        const matches = COL_KEYS.filter(k => firstNorm.some(c => c === k || c.includes(k) || k.includes(c)));
+        if (matches.length >= 2) {
+          colMap = COL_KEYS.map(k => {
+            const idx = firstNorm.findIndex(c => c.includes(k) || k.includes(c));
+            return idx >= 0 ? idx : -1;
+          });
+          startIdx = 1;
+        }
+      }
+      for (let i = startIdx; i < lines.length; i++) {
+        const row = parseCSVLine(lines[i]);
+        const getCol = idx => (idx >= 0 && idx < row.length ? row[idx] : '') || '';
+        const categoryName = getCol(colMap[0]);
+        const tagName = getCol(colMap[1]);
+        let taskText = getCol(colMap[2]);
+        if (!(taskText || '').trim() && row.length >= 1) taskText = getCol(0);
+        const dueDate = normalizeImportDate(getCol(colMap[3]));
+        const status = getCol(colMap[4]);
+        if (!(taskText || '').trim()) continue;
+        let courseId = '';
+        if (categoryName && categoryName.trim()) {
+          const cname = categoryName.trim();
+          const ckey = cname.toLowerCase();
+          if (!courseMap[ckey]) {
+            const existing = courses.find(c => c.name.toLowerCase() === ckey);
+            courseMap[ckey] = existing ? existing.id : (() => { const id = genId(); courses.push({ id, name: cname, description: '', color: DEFAULT_CATEGORY_COLOR }); return id; })();
+          }
+          courseId = courseMap[ckey];
+        }
+        const tagRaw = (tagName || '').trim();
+        let tag = tagRaw;
+        if (tagRaw) {
+          const existingTag = tags.find(t => t.name.toLowerCase() === tagRaw.toLowerCase());
+          if (existingTag) tag = existingTag.name;
+          else tags.push({ id: genId(), name: tagRaw, color: '#4a90d9' });
+        }
+        const done = /^(1|true|yes|done|complete|x|✓)$/i.test(String(status || '').trim());
+        importedTasks.push({
+          id: String(genId()),
+          text: taskText.trim(),
+          dueDate: dueDate,
+          courseId: String(courseId || ''),
+          category: String(tag || ''),
+          done: !!done,
+          parentId: ''
+        });
+      }
+      return importedTasks;
+    }
+
+    async function saveCSVToWorkingFolder(csvText, baseName) {
+      const filename = (baseName || 'tasks').replace(/\.csv$/i, '');
+      if (typeof window.electronAPI !== 'undefined' && window.electronAPI.saveCSV) {
+        const filePath = await window.electronAPI.saveCSV(csvText, filename);
+        return filePath;
+      }
+      const blob = new Blob([csvText], { type: 'text/csv;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = filename + '.csv';
+      a.click();
+      URL.revokeObjectURL(url);
+      return null;
+    }
+
+    function resetOverviewFiltersToAll() {
+      const fc = document.getElementById('ovFilterCategory');
+      const ft = document.getElementById('ovFilterTag');
+      const fdate = document.getElementById('ovFilterDate');
+      const fstatus = document.getElementById('ovFilterStatus');
+      const ftask = document.getElementById('ovFilterTask');
+      if (fc) fc.value = '';
+      if (ft) ft.value = '';
+      if (fdate) { fdate.value = ''; document.getElementById('ovFilterDateSpecific').style.display = 'none'; }
+      if (fstatus) fstatus.value = '';
+      if (ftask) ftask.value = '';
+      savePreferencesToStorage();
+    }
+
+    document.getElementById('ovSort').addEventListener('change', () => { savePreferencesToStorage(); renderOverview(); });
+    document.getElementById('ovDir').addEventListener('change', () => { savePreferencesToStorage(); renderOverview(); });
+    document.getElementById('ovFilterCategory').addEventListener('change', () => { savePreferencesToStorage(); renderOverview(); });
+    document.getElementById('ovFilterTag').addEventListener('change', () => { savePreferencesToStorage(); renderOverview(); });
+    document.getElementById('ovFilterTask').addEventListener('input', () => { savePreferencesToStorage(); renderOverview(); });
+    document.getElementById('ovFilterDate').addEventListener('change', () => {
+      const sel = document.getElementById('ovFilterDate');
+      const inp = document.getElementById('ovFilterDateSpecific');
+      if (inp) inp.style.display = (sel.value === 'date') ? '' : 'none';
+      if (sel.value === 'date' && inp && !inp.value) inp.value = todayStr();
+      savePreferencesToStorage();
+      renderOverview();
+    });
+    document.getElementById('ovFilterDateSpecific').addEventListener('change', () => { savePreferencesToStorage(); renderOverview(); });
+    document.getElementById('ovFilterStatus').addEventListener('change', () => { savePreferencesToStorage(); renderOverview(); });
+    const ovFilterSubtasks = document.getElementById('ovFilterSubtasks');
+    if (ovFilterSubtasks) ovFilterSubtasks.addEventListener('change', () => { savePreferencesToStorage(); renderOverview(); });
+
+    function applyBulkAction(updater, snapshotType) {
+      const ids = Array.from(selectedTaskIds).filter(id => {
+        const t = tasks.find(x => x.id === id);
+        return t && !t.parentId;
+      });
+      if (ids.length === 0) return;
+      if (snapshotType === 'modify') {
+        bulkUndoSnapshot = { type: 'modify', tasks: ids.map(id => JSON.parse(JSON.stringify(tasks.find(x => x.id === id)))) };
+      } else if (snapshotType === 'delete') {
+        const toDelete = ids.flatMap(id => {
+          const t = tasks.find(x => x.id === id);
+          if (!t) return [];
+          const subs = tasks.filter(x => x.parentId === id);
+          return [t, ...subs].map(x => JSON.parse(JSON.stringify(x)));
+        });
+        bulkUndoSnapshot = { type: 'delete', tasks: toDelete };
+      }
+      ids.forEach(id => {
+        const t = tasks.find(x => x.id === id);
+        if (t) updater(t);
+      });
+      save();
+      renderCategories();
+      renderTags();
+      renderTasks();
+    }
+
+    function closeAllBulkDropdowns() {
+      document.querySelectorAll('.ov-bulk-dropdown.open').forEach(d => d.classList.remove('open'));
+    }
+    function setupBulkDropdown(btnId, menuId, onSelect) {
+      const btn = document.getElementById(btnId);
+      const menu = document.getElementById(menuId);
+      if (!btn || !menu) return;
+      btn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        document.querySelectorAll('.ov-bulk-dropdown.open').forEach(d => { if (d !== menu) d.classList.remove('open'); });
+        menu.classList.toggle('open');
+      });
+      menu.addEventListener('click', (e) => {
+        const opt = e.target.closest('.ov-bulk-dropdown-option');
+        if (!opt) return;
+        const v = opt.dataset.value;
+        if (v) onSelect(v);
+        menu.classList.remove('open');
+      });
+    }
+    document.addEventListener('click', () => closeAllBulkDropdowns());
+    document.getElementById('ovBulkBar')?.addEventListener('click', e => e.stopPropagation());
+    setupBulkDropdown('ovBulkStatusBtn', 'ovBulkStatusMenu', (v) => {
+      applyBulkAction(t => { t.done = (v === 'done'); }, 'modify');
+      selectedTaskIds.clear();
+      renderOverview();
+    });
+    setupBulkDropdown('ovBulkCategoryBtn', 'ovBulkCategoryMenu', (v) => {
+      applyBulkAction(t => { t.courseId = v; }, 'modify');
+      selectedTaskIds.clear();
+      renderOverview();
+    });
+    setupBulkDropdown('ovBulkTagBtn', 'ovBulkTagMenu', (v) => {
+      applyBulkAction(t => { t.category = v; }, 'modify');
+      selectedTaskIds.clear();
+      renderOverview();
+    });
+    document.getElementById('ovBulkDate')?.addEventListener('change', function() {
+      const v = this.value;
+      if (!v) return;
+      applyBulkAction(t => { t.dueDate = v; }, 'modify');
+      this.value = '';
+      selectedTaskIds.clear();
+      renderOverview();
+    });
+    document.getElementById('ovBulkDelete')?.addEventListener('click', () => {
+      if (!selectedTaskIds.size) return;
+      if (!confirm('Delete ' + selectedTaskIds.size + ' selected task(s)?')) return;
+      const ids = Array.from(selectedTaskIds).filter(id => tasks.find(x => x.id === id) && !tasks.find(x => x.id === id)?.parentId);
+      const toDelete = ids.flatMap(id => {
+        const t = tasks.find(x => x.id === id);
+        if (!t) return [];
+        const subs = tasks.filter(x => x.parentId === id);
+        return [t, ...subs].map(x => JSON.parse(JSON.stringify(x)));
+      });
+      bulkUndoSnapshot = { type: 'delete', tasks: toDelete };
+      tasks = tasks.filter(t => !selectedTaskIds.has(t.id) && !selectedTaskIds.has(t.parentId));
+      selectedTaskIds.clear();
+      save();
+      renderOverview();
+    });
+    document.getElementById('ovBulkClear')?.addEventListener('click', () => {
+      selectedTaskIds.clear();
+      bulkUndoSnapshot = null;
+      updateBulkBar();
+      renderOverview();
+    });
+    document.getElementById('ovBulkUndo')?.addEventListener('click', () => {
+      if (!bulkUndoSnapshot) return;
+      const snap = bulkUndoSnapshot;
+      bulkUndoSnapshot = null;
+      if (snap.type === 'modify') {
+        snap.tasks.forEach(restored => {
+          const t = tasks.find(x => x.id === restored.id);
+          if (t) Object.assign(t, restored);
+        });
+      } else if (snap.type === 'delete') {
+        tasks = tasks.concat(snap.tasks);
+      }
+      save();
+      renderCategories();
+      renderTags();
+      renderTasks();
+    });
+
+    /* ═══════════════════════════════════════════
+       Auth & Admin (API mode)
+    ═══════════════════════════════════════════ */
+    if (USE_API) {
+      document.getElementById('authLoginBtn').addEventListener('click', async () => {
+        const email = document.getElementById('authEmail').value.trim();
+        const password = document.getElementById('authPassword').value;
+        document.getElementById('authError').textContent = '';
+        if (!email || !password) { document.getElementById('authError').textContent = 'Email and password required'; return; }
+        try {
+          const r = await fetch(API_BASE + '/api/auth/login', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ email, password }) });
+          const data = await r.json().catch(() => ({}));
+          if (!r.ok) throw new Error(data.error || 'Login failed');
+          setToken(data.token);
+          currentUser = data.user || { email, role: 'user' };
+          await loadDataFromApi();
+          renderCategories();
+          renderTags();
+          applyPreferences(getStoredPreferences());
+          renderTasks();
+          hideAuthForm();
+          document.getElementById('authEmail').value = '';
+          document.getElementById('authPassword').value = '';
+        } catch (e) {
+          document.getElementById('authError').textContent = e.message || 'Login failed';
+        }
+      });
+      document.getElementById('authRegisterBtn').addEventListener('click', async () => {
+        const email = document.getElementById('authEmail').value.trim();
+        const password = document.getElementById('authPassword').value;
+        document.getElementById('authError').textContent = '';
+        if (!email || !password) { document.getElementById('authError').textContent = 'Email and password required'; return; }
+        try {
+          const r = await fetch(API_BASE + '/api/auth/register', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ email, password }) });
+          const data = await r.json().catch(() => ({}));
+          if (!r.ok) throw new Error(data.error || 'Registration failed');
+          setToken(data.token);
+          currentUser = data.user || { email, role: 'user' };
+          await loadDataFromApi();
+          renderCategories();
+          renderTags();
+          applyPreferences(getStoredPreferences());
+          renderTasks();
+          hideAuthForm();
+          document.getElementById('authEmail').value = '';
+          document.getElementById('authPassword').value = '';
+        } catch (e) {
+          document.getElementById('authError').textContent = e.message || 'Registration failed';
+        }
+      });
+      document.getElementById('logoutBtn').addEventListener('click', () => {
+        clearToken();
+        currentUser = null;
+        courses = [];
+        tasks = [];
+        tags = [];
+        document.getElementById('authEmail').value = '';
+        document.getElementById('authPassword').value = '';
+        document.getElementById('authError').textContent = '';
+        showAuthForm();
+        renderCategories();
+        renderTags();
+        renderTasks();
+      });
+      document.getElementById('adminBtn').addEventListener('click', () => {
+        document.getElementById('adminPanelOverlay').classList.remove('hidden');
+        document.getElementById('adminStatsResult').innerHTML = '';
+      });
+      document.getElementById('adminPanelCloseBtn').addEventListener('click', () => {
+        document.getElementById('adminPanelOverlay').classList.add('hidden');
+      });
+      document.getElementById('adminPanelOverlay').addEventListener('click', (e) => {
+        if (e.target.id === 'adminPanelOverlay') document.getElementById('adminPanelOverlay').classList.add('hidden');
+      });
+      document.getElementById('adminGetStatsBtn').addEventListener('click', async () => {
+        const resultEl = document.getElementById('adminStatsResult');
+        resultEl.innerHTML = 'Loading…';
+        try {
+          const r = await apiFetch('/api/admin/stats');
+          if (!r.ok) throw new Error('Failed to load stats');
+          const data = await r.json();
+          let html = '<p><strong>Total accounts:</strong> ' + (data.totalAccounts ?? 0) + '</p>';
+          const accounts = data.accounts || [];
+          if (accounts.length > 0) {
+            html += '<table class="stats-table"><thead><tr><th>Email</th><th>Usage</th></tr></thead><tbody>';
+            accounts.forEach(a => {
+              html += '<tr><td>' + escHtml(a.email || '') + '</td><td>' + (a.usageCount ?? 0) + '</td></tr>';
+            });
+            html += '</tbody></table>';
+          } else {
+            html += '<p style="color:#888">No usage data yet.</p>';
+          }
+          resultEl.innerHTML = html;
+        } catch (e) {
+          resultEl.innerHTML = '<p class="error">' + escHtml(e.message || 'Failed to load stats') + '</p>';
+        }
+      });
+    }
+
+    /* ═══════════════════════════════════════════
+       Init
+    ═══════════════════════════════════════════ */
+    document.getElementById('categoriesBody').style.maxHeight = 'none';
+    document.getElementById('tagsBody').style.maxHeight = 'none';
+    document.getElementById('importAiBody').style.maxHeight = '0';
+    document.getElementById('importAiToggle').classList.add('collapsed');
+    document.getElementById('ovAddTaskBody').style.maxHeight = '0';
+    document.getElementById('ovAddTaskToggle').classList.add('collapsed');
+    document.getElementById('ovAddTaskSymbol').textContent = '+';
+    document.getElementById('ovAddTaskSymbol').title = 'Click to expand';
+    async function doAuthInit() {
+      const token = getToken();
+      if (!token) {
+        showAuthForm();
+        renderCategories();
+        renderTags();
+        renderTasks();
+        return;
+      }
+      try {
+        const r = await apiFetch('/api/me');
+        if (!r.ok) throw new Error();
+        currentUser = await r.json();
+        await loadDataFromApi();
+        renderCategories();
+        renderTags();
+        applyPreferences(getStoredPreferences());
+        renderTasks();
+        hideAuthForm();
+      } catch {
+        showAuthForm();
+        renderCategories();
+        renderTags();
+        renderTasks();
+      }
+    }
+
+    if (USE_API) {
+      doAuthInit();
+    } else {
+      document.getElementById('authInlineForm').style.display = 'none';
+      document.getElementById('userLogoutWrap').style.display = 'none';
+      document.getElementById('adminBtn').style.display = 'none';
+      renderCategories();
+      renderTags();
+      applyPreferences(getStoredPreferences());
+      renderTasks();
+    }
+  </script>
+</body>
+</html>
