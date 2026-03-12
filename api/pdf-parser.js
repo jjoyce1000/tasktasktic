@@ -318,7 +318,9 @@ async function parseWithPython(buffer, filename) {
 
     function splitConcatenatedTasks(text) {
       const parts = [];
-      const re = /\b(?:Review - |Section \d+\.?\d*(?:\s*\(cont'd\))?|Quiz \d+|Just in Time|WA due:|Last Day to|Calc \d|EXAM \d|Basic Integration|Area Between|Volumes?|Chapter \d|Syllabus\b|Graphs & Derivatives|MLK Jr\. Day|\(No classes\))/gi;
+      // Split on: Calc N Review - , Just in Time - , Section N, Quiz N, etc.
+      // Do NOT split on Graphs & Derivatives (keeps "Quiz 1\nGraphs & Derivatives" as 1 task)
+      const re = /\b(?:Calc \d+ Review - |Just in Time - |Section \d+\.?\d*(?:\s*\(cont'd\))?|Quiz \d+|WA due:|Last Day to|Calc \d|EXAM \d|Basic Integration|Area Between|Volumes?|Chapter \d|Syllabus\b|MLK Jr\. Day|\(No classes\))/gi;
       let lastEnd = 0;
       let m;
       while ((m = re.exec(text)) !== null) {
