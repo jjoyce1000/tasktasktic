@@ -3011,21 +3011,32 @@
       const data = await res.json();
       let tasks = data.tasks || [];
       if (!tasks.length) throw new Error('No tasks found in PDF.');
-      tasks = ensureCoursesForImportedTasks(tasks);
+      tasks = ensureCoursesAndTagsForImportedTasks(tasks);
       return { tasks, parser: data.parser || 'unknown' };
     }
 
-    function ensureCoursesForImportedTasks(importedTasks) {
+    function ensureCoursesAndTagsForImportedTasks(importedTasks) {
       return importedTasks.map(t => {
         const cat = (t.category || '').trim();
-        if (!cat || t.courseId) return t;
-        let c = courses.find(x => x.name.toLowerCase() === cat.toLowerCase());
-        if (!c) {
-          c = { id: genId(), name: cat, description: '', color: DEFAULT_CATEGORY_COLOR };
-          courses.push(c);
-        }
         const tagVal = (t.tag !== undefined ? t.tag : t.category);
-        return { ...t, courseId: c.id, category: String(tagVal || '').trim() };
+        const tagStr = String(tagVal || '').trim();
+        // Add category (course) to config if not present
+        if (cat && !t.courseId) {
+          let c = courses.find(x => x.name.toLowerCase() === cat.toLowerCase());
+          if (!c) {
+            c = { id: genId(), name: cat, description: '', color: DEFAULT_CATEGORY_COLOR };
+            courses.push(c);
+          }
+          t = { ...t, courseId: c.id };
+        }
+        // Add tag to config if not present
+        if (tagStr) {
+          const existingTag = tags.find(x => x.name.toLowerCase() === tagStr.toLowerCase());
+          if (!existingTag) {
+            tags.push({ id: genId(), name: tagStr, color: '#4a90d9' });
+          }
+        }
+        return { ...t, category: tagStr };
       });
     }
 

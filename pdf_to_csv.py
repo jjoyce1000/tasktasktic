@@ -127,7 +127,7 @@ Example output: {"tasks": [{"task": "Homework 1 due", "date": "2026-01-15", "cou
         return None
 
 
-def convert_pdf_to_csv(pdf_path: str, output_path: str = None) -> str:
+def convert_pdf_to_csv(pdf_path: str, output_path: str = None, original_filename: str = None) -> str:
     """
     Parse a PDF file and generate a CSV file compatible with TaskTastic import.
 
@@ -135,6 +135,7 @@ def convert_pdf_to_csv(pdf_path: str, output_path: str = None) -> str:
         pdf_path: Path to the input PDF file.
         output_path: Optional path for output CSV. Defaults to <pdf_stem>_schedule.csv
                      in the same directory as the PDF.
+        original_filename: Optional original filename (e.g. from upload) for course/tag extraction.
 
     Returns:
         Path to the generated CSV file.
@@ -151,6 +152,8 @@ def convert_pdf_to_csv(pdf_path: str, output_path: str = None) -> str:
         raise FileNotFoundError(f"PDF file not found: {pdf_path}")
 
     output_path = output_path or str(pdf_path.parent / (pdf_path.stem + "_schedule.csv"))
+    # Use original filename for course extraction when provided (e.g. "M156-Syllabus.pdf")
+    filename_for_course = (original_filename or pdf_path.name).strip()
 
     with pdfplumber.open(pdf_path) as pdf:
         text = "\n".join(p.extract_text() or "" for p in pdf.pages)
@@ -166,10 +169,10 @@ def convert_pdf_to_csv(pdf_path: str, output_path: str = None) -> str:
     # Prefer AI parsing when ANTHROPIC_API_KEY is set
     items = None
     if _has_anthropic_key():
-        items = _parse_with_ai(text, tables_str, pdf_path.stem)
+        items = _parse_with_ai(text, tables_str, filename_for_course)
 
     if not items:
-        items = _parse_content(text, tables_data, pdf_path.stem)
+        items = _parse_content(text, tables_data, filename_for_course)
 
     _write_csv(items, output_path)
     print(f"[PDF import] output={output_path} tasks={len(items)}", file=sys.stderr)
@@ -520,15 +523,18 @@ def _detect_course(text: str, filename: str) -> str:
     m = re.search(r"[A-Z]{2,6}\s*\d{3}[A-Z]?", text or "")
     if m:
         return m.group(0).strip()
-    # From filename: "Copy of M156 Spring 2026 Calendar" -> M156, "Physics 111 Schedule" -> Physics 111
-    fn = (filename or "").replace("Copy of ", "").replace(" - Sheet1", "")
-    m = re.search(r"(Physics\s*111|M\d{2,4}|MATH\s*\d{2,4}|[A-Z]{2,6}\s*\d{3})", fn, re.I)
+    # From filename: extract course name or use filename stem (without extension)
+    fn = (filename or "").replace("Copy of ", "").replace(" - Sheet1", "").strip()
+    # Remove extension for stem (e.g. "M156-Syllabus.pdf" -> "M156-Syllabus")
+    stem = re.sub(r"\.(pdf|csv)$", "", fn, flags=re.I).strip() if fn else ""
+    # Try known course patterns in filename
+    m = re.search(r"(Physics\s*111|M\d{2,4}|MATH\s*\d{2,4}|[A-Z]{2,6}\s*\d{3}[A-Z]?)", stem or fn, re.I)
     if m:
         return m.group(1).strip()
-    if fn and fn.lower() not in ("", "syllabus", "schedule", "calendar"):
-        stem = (filename or "").replace("Copy of ", "").replace(" - Sheet1", "").strip()
-        if len(stem) < 50:
-            return re.sub(r"\s+", " ", stem)
+    # Fallback: use filename stem as course/tag (e.g. "M156 Spring 2026", "Physics 101 Syllabus")
+    generic = ("", "syllabus", "schedule", "calendar", "document", "import", "pdf_import")
+    if stem and stem.lower() not in generic and len(stem) < 80:
+        return re.sub(r"\s+", " ", stem)
     return "General"
 
 
@@ -560,15 +566,16 @@ def _write_csv(items: list, output_path: str) -> None:
 
 if __name__ == "__main__":
     if len(sys.argv) < 2:
-        print("Usage: python pdf_to_csv.py <input.pdf> [output.csv]", file=sys.stderr)
+        print("Usage: python pdf_to_csv.py <input.pdf> [output.csv] [original_filename]", file=sys.stderr)
         print("", file=sys.stderr)
         print("Parses a PDF (syllabus, schedule) and outputs CSV for TaskTastic import.", file=sys.stderr)
         print("Output format: Category,Tag,Task,Due Date,Status", file=sys.stderr)
         sys.exit(1)
     pdf_path = sys.argv[1]
     out_path = sys.argv[2] if len(sys.argv) > 2 else None
+    original_filename = sys.argv[3] if len(sys.argv) > 3 else None
     try:
-        result = convert_pdf_to_csv(pdf_path, out_path)
+        result = convert_pdf_to_csv(pdf_path, out_path, original_filename)
         print(f"Wrote schedule to {result}")
     except Exception as e:
         print(f"Error: {e}", file=sys.stderr)

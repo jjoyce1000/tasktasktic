@@ -61,7 +61,7 @@ Rules:
 - Infer year from document (Fall 2026, Spring 2026, etc.) when dates lack year
 - One item per task; split "HW 1, 2, 3" into separate tasks if dates differ
 - Skip headers, column labels, and meta text (e.g. "Week", "Monday", "Date")
-- Use the course name from the document title or header
+- Use the course name from the document title, header, or filename (e.g. "M156-Syllabus.pdf" -> M156)
 - Dates: prefer ISO YYYY-MM-DD; empty string if unknown
 - Include ALL weeks from the start: calendar grids often have Mon–Fri columns; the first date in each row is Monday (e.g. 1/12). Do NOT skip Week 1 or the first week's content.
 - CRITICAL – Date alignment in schedule grids: When the document has a grid with date columns (e.g. Mon 1/12 | Tue 1/13 | Wed 1/14 | Thu 1/15 | Fri 1/16), each task belongs to the date of its COLUMN. The first content cell maps to Monday's date, the second to Tuesday's, the third to Wednesday's, etc. "Section 5.5 - Substitution" in the Friday column must get Friday's date (e.g. 1/16), NOT Monday's (1/12). Match each task to the date of the column it appears under.
@@ -240,9 +240,13 @@ function extractCourse(text, filename) {
     first.match(/(?:Physics|PHYS|Math|MATH|M\d{2,4}|CS|History|HIST|ENG|BIO)\s*\d{2,4}[A-Z]?/i) ||
     first.match(/[A-Z]{2,6}\s*\d{3}[A-Z]?/);
   if (m) return m[1]?.trim() || m[0]?.trim() || 'General';
-  const fn = (filename || '').replace(/Copy of | - Sheet1/gi, '');
-  const fm = fn.match(/(Physics\s*111|M\d{2,4}|MATH\s*\d{2,4}|[A-Z]{2,6}\s*\d{3})/i);
+  const fn = (filename || '').replace(/Copy of | - Sheet1/gi, '').trim();
+  const stem = fn.replace(/\.(pdf|csv)$/i, '').trim();
+  const fm = stem.match(/(Physics\s*111|M\d{2,4}|MATH\s*\d{2,4}|[A-Z]{2,6}\s*\d{3}[A-Z]?)/i);
   if (fm) return fm[1].trim();
+  // Fallback: use filename stem as course/tag (e.g. "M156-Syllabus" -> "M156-Syllabus")
+  const generic = ['', 'syllabus', 'schedule', 'calendar', 'document', 'import', 'pdf_import'];
+  if (stem && !generic.includes(stem.toLowerCase()) && stem.length < 80) return stem;
   return 'General';
 }
 
@@ -261,7 +265,7 @@ async function parseWithPython(buffer, filename) {
   try {
     fs.writeFileSync(tmpPdf, buffer);
     await new Promise((resolve, reject) => {
-      const proc = spawn('python', [scriptPath, tmpPdf, tmpCsv], {
+      const proc = spawn('python', [scriptPath, tmpPdf, tmpCsv, filename || ''], {
         stdio: ['ignore', 'pipe', 'pipe'],
       });
       let stderr = '';
