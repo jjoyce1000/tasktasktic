@@ -19,8 +19,13 @@ const upload = multer({
   },
 });
 
-app.use(cors());
+app.use(cors({ origin: true, methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'], allowedHeaders: ['Content-Type', 'Authorization'] }));
 app.use(express.json({ limit: '10mb' }));
+
+// Health check (no auth) - for debugging connectivity
+app.get('/api/health', (req, res) => {
+  res.json({ ok: true, db: !!process.env.DATABASE_URL ? 'postgres' : 'sqlite' });
+});
 
 function authMiddleware(req, res, next) {
   const header = req.headers.authorization;
@@ -65,7 +70,8 @@ app.post('/api/auth/register', async (req, res) => {
     const user = await db.get('SELECT id, email, role FROM users WHERE id = ?', result.id);
     res.json({ user: { id: user.id, email: user.email, role: user.role || 'user' }, token: result.token });
   } catch (e) {
-    res.status(400).json({ error: e.message });
+    console.error('[auth/register]', e.message);
+    res.status(400).json({ error: e.message || 'Registration failed' });
   }
 });
 
@@ -79,7 +85,8 @@ app.post('/api/auth/login', async (req, res) => {
     const user = await db.get('SELECT id, email, role FROM users WHERE id = ?', result.id);
     res.json({ user: { id: user.id, email: user.email, role: user.role || 'user' }, token: result.token });
   } catch (e) {
-    res.status(401).json({ error: e.message });
+    console.error('[auth/login]', e.message);
+    res.status(401).json({ error: e.message || 'Invalid email or password' });
   }
 });
 

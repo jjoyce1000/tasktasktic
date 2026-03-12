@@ -1615,8 +1615,8 @@
       if (!USE_API) return '';
       if (LOCAL_ORIGINS.includes(window.location.origin)) return '';
       if (/^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(window.location.origin)) return 'http://localhost:3001';
-      // Same-origin: use relative URLs (page and API served from same host)
-      if (window.location.origin === API_URL.replace(/\/$/, '') || window.location.hostname === new URL(API_URL).hostname) return '';
+      // Same-origin: use relative URLs when page and API are same host (Render, custom domain, etc.)
+      if (window.location.hostname.endsWith('.onrender.com') || window.location.origin === API_URL.replace(/\/$/, '')) return '';
       return API_URL;
     })();
 
@@ -3438,8 +3438,10 @@
         if (!email || !password) { document.getElementById('authError').textContent = 'Email and password required'; return; }
         try {
           const r = await fetch(API_BASE + '/api/auth/login', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ email, password }) });
-          const data = await r.json().catch(() => ({}));
-          if (!r.ok) throw new Error(data.error || 'Login failed');
+          const text = await r.text();
+          const data = text ? (() => { try { return JSON.parse(text); } catch { return {}; } })() : {};
+          if (!r.ok) throw new Error(data.error || (r.status >= 500 ? 'Server error - try again' : 'Login failed'));
+          if (!data.token) throw new Error('No token received');
           setToken(data.token);
           currentUser = data.user || { email, role: 'user' };
           await loadDataFromApi();
@@ -3451,7 +3453,7 @@
           document.getElementById('authEmail').value = '';
           document.getElementById('authPassword').value = '';
         } catch (e) {
-          document.getElementById('authError').textContent = e.message || 'Login failed';
+          document.getElementById('authError').textContent = e.message || (e.name === 'TypeError' ? 'Network error - check connection' : 'Login failed');
         }
       });
       document.getElementById('authRegisterBtn').addEventListener('click', async () => {
@@ -3461,8 +3463,10 @@
         if (!email || !password) { document.getElementById('authError').textContent = 'Email and password required'; return; }
         try {
           const r = await fetch(API_BASE + '/api/auth/register', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ email, password }) });
-          const data = await r.json().catch(() => ({}));
-          if (!r.ok) throw new Error(data.error || 'Registration failed');
+          const text = await r.text();
+          const data = text ? (() => { try { return JSON.parse(text); } catch { return {}; } })() : {};
+          if (!r.ok) throw new Error(data.error || (r.status >= 500 ? 'Server error - try again' : 'Registration failed'));
+          if (!data.token) throw new Error('No token received');
           setToken(data.token);
           currentUser = data.user || { email, role: 'user' };
           await loadDataFromApi();
@@ -3474,7 +3478,7 @@
           document.getElementById('authEmail').value = '';
           document.getElementById('authPassword').value = '';
         } catch (e) {
-          document.getElementById('authError').textContent = e.message || 'Registration failed';
+          document.getElementById('authError').textContent = e.message || (e.name === 'TypeError' ? 'Network error - check connection' : 'Registration failed');
         }
       });
       document.getElementById('logoutBtn').addEventListener('click', () => {
